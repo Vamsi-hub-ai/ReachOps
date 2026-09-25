@@ -18,7 +18,7 @@ export default function Landing() {
               <div className="w-10 h-10 bg-brand-teal rounded-xl flex items-center justify-center transform rotate-12 transition-transform hover:rotate-0">
                 <Mail className="text-white w-5 h-5 -rotate-12" />
               </div>
-              <span className="font-bold text-2xl tracking-tight text-brand-indigo">OutreachAI</span>
+              <span className="font-bold text-2xl tracking-tight text-brand-indigo">ReachOps</span>
             </div>
             
             <div className="hidden md:flex space-x-8">
@@ -104,7 +104,7 @@ export default function Landing() {
                     <div className="w-7 h-7 bg-brand-teal rounded flex items-center justify-center">
                       <Mail className="w-4 h-4 text-white" />
                     </div>
-                    <span className="font-bold text-sm tracking-wide">OutreachAI</span>
+                    <span className="font-bold text-sm tracking-wide">ReachOps</span>
                   </div>
                   <div className="space-y-1.5 flex-1">
                     <div className="bg-brand-teal/20 text-brand-teal px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2">
@@ -214,7 +214,7 @@ export default function Landing() {
       <section id="solutions" className="py-24 bg-brand-light relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-extrabold text-brand-indigo mb-4">How OutreachAI Works</h2>
+            <h2 className="text-3xl font-extrabold text-brand-indigo mb-4">How ReachOps Works</h2>
             <p className="text-gray-500">Launch your first campaign in minutes, not days.</p>
           </div>
 
@@ -393,7 +393,7 @@ export default function Landing() {
 
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-brand-indigo mb-3">Built for Modern B2B Teams</h2>
-            <p className="text-gray-500 text-sm">Whether you're a founder, SDR, agency, or recruiter — OutreachAI helps you scale your outreach.</p>
+            <p className="text-gray-500 text-sm">Whether you're a founder, SDR, agency, or recruiter — ReachOps helps you scale your outreach.</p>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -488,14 +488,14 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row justify-between items-center sm:items-end mb-10 gap-4 text-center sm:text-left">
             <div>
               <h2 className="text-3xl font-extrabold text-brand-indigo mb-2">Frequently Asked Questions</h2>
-              <p className="text-gray-500 text-sm">Everything you need to know about OutreachAI.</p>
+              <p className="text-gray-500 text-sm">Everything you need to know about ReachOps.</p>
             </div>
             <a href="#" className="text-sm font-medium text-brand-royal hover:underline">View all FAQs →</a>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-24 items-start">
             {[
-              { q: 'What is OutreachAI?', a: 'OutreachAI is a powerful platform that combines cold email automation with AI to help you scale your outbound prospecting and book more meetings.' },
+              { q: 'What is ReachOps?', a: 'ReachOps is a powerful platform that combines cold email automation with AI to help you scale your outbound prospecting and book more meetings.' },
               { q: 'Can I import leads from Google Sheets?', a: 'Yes! You can easily sync your leads directly from Google Sheets or upload a CSV file into your campaigns.' },
               { q: 'Can I use Gmail or Outlook?', a: 'Absolutely. You can connect multiple Google Workspace and Microsoft 365 accounts to send emails.' },
               { q: 'Does it support automated follow-ups?', a: 'Yes, you can build multi-step sequences with automated follow-ups based on prospect engagement.' },
@@ -503,7 +503,7 @@ export default function Landing() {
               { q: 'Can AI write personalized emails?', a: 'Our built-in AI Email Writer can generate personalized emails and entire sequences based on your prompts.' },
               { q: 'Can one campaign use multiple email accounts?', a: 'Yes, you can use inbox rotation to send from multiple accounts within a single campaign for better deliverability.' },
               { q: 'Can I track campaign performance?', a: 'We provide real-time analytics including open rates, reply rates, and positive response tracking.' },
-              { q: 'Does OutreachAI provide a unified inbox?', a: 'Yes, you can view and reply to all your prospect responses from different accounts in one central unified inbox.' },
+              { q: 'Does ReachOps provide a unified inbox?', a: 'Yes, you can view and reply to all your prospect responses from different accounts in one central unified inbox.' },
               { q: 'Is there a free trial?', a: 'Yes, we offer a 14-day free trial on all plans. No credit card required to start.' }
             ].map((item, i) => (
               <div 
@@ -532,7 +532,7 @@ export default function Landing() {
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
             
             <h2 className="text-3xl md:text-4xl font-extrabold mb-4 relative z-10">Ready to supercharge your sales?</h2>
-            <p className="text-white/80 text-sm md:text-base mb-8 max-w-2xl mx-auto relative z-10">Join thousands of companies using OutreachAI to generate pipeline on autopilot.</p>
+            <p className="text-white/80 text-sm md:text-base mb-8 max-w-2xl mx-auto relative z-10">Join thousands of companies using ReachOps to generate pipeline on autopilot.</p>
             <div className="flex flex-col items-center relative z-10">
               <Link to="/dashboard" className="bg-brand-teal hover:bg-teal-400 text-brand-indigo px-8 py-4 rounded-xl text-sm font-bold transition-all shadow-xl hover:-translate-y-1 mb-6 flex items-center gap-2">
                 Start for free <ArrowRight className="w-4 h-4" />
@@ -555,7 +555,7 @@ export default function Landing() {
                 <div className="w-8 h-8 bg-brand-teal rounded-lg flex items-center justify-center">
                   <Mail className="text-white w-4 h-4" />
                 </div>
-                <span className="font-bold text-xl tracking-tight text-white">OutreachAI</span>
+                <span className="font-bold text-xl tracking-tight text-white">ReachOps</span>
               </div>
               <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
                 The most powerful AI email automation platform designed to help you generate leads at scale.
@@ -593,7 +593,7 @@ export default function Landing() {
           </div>
           
           <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-500">© 2026 OutreachAI. All rights reserved.</p>
+            <p className="text-sm text-gray-500">© 2026 ReachOps. All rights reserved.</p>
             <div className="flex gap-4">
               <a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">Terms of Service</a>
