@@ -61,7 +61,7 @@ export default function DashboardLayout() {
             <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center shadow-lg shadow-secondary/20">
               <Send className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold text-white tracking-tight">Reachly</span>
+            <span className="text-xl font-bold text-white tracking-tight">ReachOps</span>
           </div>
         </div>
 

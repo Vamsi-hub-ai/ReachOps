@@ -269,7 +269,7 @@ export default function EmailAccounts() {
                           )}
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900">Choose an account</h3>
-                        <p className="text-sm text-gray-500">to continue to Reachly Platform</p>
+                        <p className="text-sm text-gray-500">to continue to ReachOps Platform</p>
                       </div>
 
                       {showManualOAuth ? (
