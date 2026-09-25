@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String            @id @default(uuid())
+  name             String?
+  email            String            @unique
+  passwordHash     String?
+  avatar           String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  workspaceMembers WorkspaceMember[]
+  auditLogs        AuditLog[]
+}
+
+model Workspace {
+  id               String            @id @default(uuid())
+  name             String
+  ownerId          String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  members          WorkspaceMember[]
+  emailAccounts    EmailAccount[]
+  campaigns        Campaign[]
+  suppressions     Suppression[]
+  auditLogs        AuditLog[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        String    @default("MEMBER")
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+model EmailAccount {
+  id                    String    @id @default(uuid())
+  workspaceId           String
+  provider              String // "GMAIL" or "MICROSOFT"
+  email                 String
+  displayName           String?
+  providerAccountId     String
+  accessTokenEncrypted  String
+  refreshTokenEncrypted String?
+  tokenExpiresAt        DateTime?
+  status                String    @default("ACTIVE")
+  dailyLimit            Int       @default(100)
+  sentToday             Int       @default(0)
+  lastSentAt            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages              Message[]
+}
+
+model Campaign {
+  id                    String               @id @default(uuid())
+  workspaceId           String
+  name                  String
+  description           String?
+  status                String               @default("DRAFT")
+  timezone              String               @default("UTC")
+  startDate             DateTime?
+  endDate               DateTime?
+  dailyLimit            Int?
+  sendingWindowStart    String               @default("09:00")
+  sendingWindowEnd      String               @default("17:00")
+  weekendSendingEnabled Boolean              @default(false)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  workspace             Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sheet                 CampaignSheet?
+  prospects             Prospect[]
+  sequences             Sequence[]
+  enrollments           CampaignEnrollment[]
+  messages              Message[]
+}
+
+model CampaignSheet {
+  id                String   @id @default(uuid())
+  campaignId        String   @unique
+  spreadsheetId     String
+  sheetId           String
+  sheetName         String
+  lastSyncedAt      DateTime?
+  columnMappingJson String? // JSON string
+  campaign          Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model Prospect {
+  id               String               @id @default(uuid())
+  campaignId       String
+  externalRowId    String?
+  firstName        String?
+  lastName         String?
+  email            String
+  company          String?
+  jobTitle         String?
+  phone            String?
+  website          String?
+  linkedinUrl      String?
+  status           String               @default("NEW")
+  customFieldsJson String? // JSON string
+  unsubscribe      Boolean              @default(false)
+  bounced          Boolean              @default(false)
+  replied          Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  campaign         Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  enrollments      CampaignEnrollment[]
+  messages         Message[]
+}
+
+model Sequence {
+  id          String               @id @default(uuid())
+  campaignId  String
+  name        String
+  status      String               @default("ACTIVE")
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  campaign    Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  steps       SequenceStep[]
+  enrollments CampaignEnrollment[]
+}
+
+model SequenceStep {
+  id           String    @id @default(uuid())
+  sequenceId   String
+  stepNumber   Int
+  subject      String
+  bodyHtml     String
+  bodyText     String?
+  delayDays    Int       @default(0)
+  delayHours   Int       @default(0)
+  delayMinutes Int       @default(0)
+  enabled      Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sequence     Sequence  @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  messages     Message[]
+}
+
+model CampaignEnrollment {
+  id           String    @id @default(uuid())
+  campaignId   String
+  sequenceId   String
+  prospectId   String
+  currentStep  Int       @default(1)
+  status       String    @default("ACTIVE")
+  nextActionAt DateTime?
+  lastSentAt   DateTime?
+  completedAt  DateTime?
+  stopReason   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sequence     Sequence  @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  prospect     Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id                String         @id @default(uuid())
+  campaignId        String
+  prospectId        String
+  emailAccountId    String
+  sequenceStepId    String
+  providerMessageId String?
+  threadId          String?
+  subject           String
+  status            String         @default("QUEUED") // QUEUED, PROCESSING, SENT, FAILED, RETRYING, CANCELLED
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  clickedAt         DateTime?
+  failedAt          DateTime?
+  errorCode         String?
+  errorMessage      String?
+  createdAt         DateTime       @default(now())
+  campaign          Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  prospect          Prospect       @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  emailAccount      EmailAccount   @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+  sequenceStep      SequenceStep   @relation(fields: [sequenceStepId], references: [id], onDelete: Cascade)
+  events            MessageEvent[]
+}
+
+model MessageEvent {
+  id            String   @id @default(uuid())
+  messageId     String
+  eventType     String // OPEN, CLICK, REPLY, BOUNCE
+  eventDataJson String?
+  createdAt     DateTime @default(now())
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model Suppression {
+  id          String    @id @default(uuid())
+  workspaceId String
+  email       String
+  reason      String
+  source      String
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id           String    @id @default(uuid())
+  workspaceId  String
+  userId       String
+  action       String
+  entityType   String
+  entityId     String
+  metadataJson String?
+  createdAt    DateTime  @default(now())
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
