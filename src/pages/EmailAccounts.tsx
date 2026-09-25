@@ -5,7 +5,6 @@ import { Mail, CheckCircle2, AlertTriangle, Plus, Settings, RefreshCw, Flame, X,
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-const initialAccounts: any[] = [];
 
 export default function EmailAccounts() {
   const [accounts, setAccounts] = useState<any[]>([]);

@@ -1,23 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Mail, Zap, Target, Inbox, PenTool, BarChart3, CheckCircle2, Layers, Sparkles, LineChart, Plus, Check, Users, Code, Minus } from 'lucide-react';
+import { ArrowRight, Mail, Zap, Target, Inbox, BarChart3, CheckCircle2, Layers, Sparkles, LineChart, Plus, Check, Users, Code, Minus } from 'lucide-react';
 
 export default function Landing() {
   const [isYearly, setIsYearly] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const seoLinks = [
-    { name: "AI Email Outreach", href: "#" },
-    { name: "Email Automation", href: "#" },
-    { name: "Cold Email", href: "#" },
-    { name: "Email Sequences", href: "#" },
-    { name: "Email Deliverability", href: "#" },
-    { name: "Unified Inbox", href: "#" },
-    { name: "AI Email Writer", href: "#" },
-    { name: "Integrations", href: "#" },
-    { name: "Use Cases", href: "#" },
-    { name: "Blog/Guides", href: "#" },
-  ];
+
 
   return (
     <div className="min-h-screen bg-white text-brand-dark font-sans selection:bg-brand-teal selection:text-white">
