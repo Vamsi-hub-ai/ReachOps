@@ -31,7 +31,7 @@ export const handler: Handler = async (event) => {
     const workspaceIds = user?.workspaceMembers.map(m => m.workspaceId) || [];
     const campaign = await prisma.campaign.findFirst({
       where: { id: campaignId, workspaceId: { in: workspaceIds } },
-      include: { sequence: { include: { steps: { orderBy: { stepNumber: 'asc' } } } } }
+      include: { sequences: { include: { steps: { orderBy: { stepNumber: 'asc' } } } } }
     });
 
     if (!campaign) {
@@ -42,7 +42,7 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sequence: campaign.sequence }),
+        body: JSON.stringify({ sequence: campaign.sequences[0] }),
       };
     }
 
@@ -54,16 +54,19 @@ export const handler: Handler = async (event) => {
       }
 
       // Upsert sequence
-      const sequence = await prisma.sequence.upsert({
-        where: { campaignId },
-        create: {
-          campaignId,
-          name,
-        },
-        update: {
-          name,
-        }
+      let sequence = await prisma.sequence.findFirst({
+        where: { campaignId }
       });
+      if (sequence) {
+        sequence = await prisma.sequence.update({
+          where: { id: sequence.id },
+          data: { name }
+        });
+      } else {
+        sequence = await prisma.sequence.create({
+          data: { campaignId, name }
+        });
+      }
 
       // Transaction to replace all steps
       // 1. Delete existing steps for this sequence

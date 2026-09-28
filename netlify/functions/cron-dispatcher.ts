@@ -13,15 +13,15 @@ export const handler = schedule('*/5 * * * *', async (event) => {
         status: { in: ['PENDING', 'ACTIVE'] },
         campaign: { status: 'ACTIVE' },
         OR: [
-          { nextSendTime: null },
-          { nextSendTime: { lte: new Date() } }
+          { nextActionAt: null },
+          { nextActionAt: { lte: new Date() } }
         ]
       },
       include: {
         prospect: true,
         campaign: {
           include: {
-            sequence: {
+            sequences: {
               include: { steps: { orderBy: { stepNumber: 'asc' } } }
             }
           }
@@ -55,7 +55,7 @@ export const handler = schedule('*/5 * * * *', async (event) => {
         continue; // Skip this enrollment
       }
 
-      const sequence = enrollment.campaign.sequence;
+      const sequence = enrollment.campaign.sequences[0];
       if (!sequence || sequence.steps.length === 0) {
         console.error(`No sequence or steps for campaign ${enrollment.campaignId}`);
         continue;
@@ -82,7 +82,7 @@ export const handler = schedule('*/5 * * * *', async (event) => {
           firstName: enrollment.prospect.firstName,
           lastName: enrollment.prospect.lastName,
           company: enrollment.prospect.company,
-          customData: enrollment.prospect.customData
+          customData: enrollment.prospect.customFieldsJson ? JSON.parse(enrollment.prospect.customFieldsJson) : {}
         }, 
         currentStep.subject, 
         currentStep.bodyHtml,
@@ -99,7 +99,8 @@ export const handler = schedule('*/5 * * * *', async (event) => {
             sequenceStepId: currentStep.id,
             emailAccountId: accountId,
             status: 'SENT',
-            providerMessageId: result.messageId || 'unknown'
+            providerMessageId: result.messageId || 'unknown',
+            subject: currentStep.subject
           }
         });
 
@@ -115,13 +116,13 @@ export const handler = schedule('*/5 * * * *', async (event) => {
             data: { 
               status: 'ACTIVE',
               currentStep: nextStep.stepNumber,
-              nextSendTime: nextTime
+              nextActionAt: nextTime
             }
           });
         } else {
           await prisma.campaignEnrollment.update({
             where: { id: enrollment.id },
-            data: { status: 'COMPLETED', nextSendTime: null }
+            data: { status: 'COMPLETED', nextActionAt: null }
           });
         }
       } else {
@@ -134,7 +135,8 @@ export const handler = schedule('*/5 * * * *', async (event) => {
             sequenceStepId: currentStep.id,
             emailAccountId: accountId,
             status: 'FAILED',
-            errorMessage: String(result.error)
+            errorMessage: String(result.error),
+            subject: currentStep.subject
           }
         });
       }

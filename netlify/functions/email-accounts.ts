@@ -51,6 +51,8 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({ success: true })
       };
     }
+    
+    return { statusCode: 400, body: 'Bad Request' };
   } catch (error: any) {
     console.error('Email Accounts Error:', error);
     return {

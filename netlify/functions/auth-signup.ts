@@ -14,7 +14,10 @@ export const handler: Handler = async (event) => {
     if (event.isBase64Encoded) {
       bodyText = Buffer.from(bodyText, 'base64').toString('utf8');
     }
-    const { name, email, password } = JSON.parse(bodyText);
+    const parsedBody = JSON.parse(bodyText);
+    const { name, password } = parsedBody;
+    const email = parsedBody.email?.toLowerCase().trim();
+    
     if (!email || !password || !name) {
       return {
         statusCode: 400,

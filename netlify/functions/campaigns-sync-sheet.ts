@@ -88,6 +88,11 @@ export const handler: Handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Email column mapping is invalid' }) };
     }
 
+    // Find the campaign's sequence to use for enrollment
+    const sequence = await prisma.sequence.findFirst({
+      where: { campaignId: campaign.id }
+    });
+
     for (const row of dataRows) {
       const email = row[emailIdx];
       if (!email) continue;
@@ -100,40 +105,46 @@ export const handler: Handler = async (event) => {
       customFieldsIdx.forEach(({key, idx}) => {
          if (idx !== -1) customData[key] = row[idx];
       });
+      const customFieldsJson = Object.keys(customData).length > 0 ? JSON.stringify(customData) : null;
 
-      // Upsert Prospect
-      const prospect = await prisma.prospect.upsert({
-         where: { 
-           workspaceId_email: { workspaceId: campaign.workspaceId, email }
-         },
-         create: {
-           workspaceId: campaign.workspaceId,
-           email,
-           firstName,
-           lastName,
-           company,
-           customData
-         },
-         update: {
-           firstName,
-           lastName,
-           company,
-           customData
-         }
+      // Find prospect first
+      let prospect = await prisma.prospect.findFirst({
+         where: { campaignId: campaign.id, email }
       });
+
+      if (prospect) {
+         prospect = await prisma.prospect.update({
+           where: { id: prospect.id },
+           data: { firstName, lastName, company, customFieldsJson }
+         });
+      } else {
+         prospect = await prisma.prospect.create({
+           data: {
+             campaignId: campaign.id,
+             email,
+             firstName,
+             lastName,
+             company,
+             customFieldsJson
+           }
+         });
+      }
 
       // Add to campaign if not already in it
-      await prisma.campaignEnrollment.upsert({
-        where: {
-          campaignId_prospectId: { campaignId: campaign.id, prospectId: prospect.id }
-        },
-        create: {
-          campaignId: campaign.id,
-          prospectId: prospect.id,
-          status: 'PENDING'
-        },
-        update: {}
+      const existingEnrollment = await prisma.campaignEnrollment.findFirst({
+        where: { campaignId: campaign.id, prospectId: prospect.id }
       });
+
+      if (!existingEnrollment && sequence) {
+        await prisma.campaignEnrollment.create({
+          data: {
+            campaignId: campaign.id,
+            sequenceId: sequence.id,
+            prospectId: prospect.id,
+            status: 'PENDING'
+          }
+        });
+      }
 
       syncedCount++;
     }

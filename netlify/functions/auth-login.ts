@@ -15,7 +15,9 @@ export const handler: Handler = async (event) => {
       bodyText = Buffer.from(bodyText, 'base64').toString('utf8');
     }
     console.log('[DEBUG] auth-login received body:', bodyText);
-    const { email, password } = JSON.parse(bodyText);
+    const parsedBody = JSON.parse(bodyText);
+    const password = parsedBody.password;
+    const email = parsedBody.email?.toLowerCase().trim();
 
     if (!email || !password) {
       return {

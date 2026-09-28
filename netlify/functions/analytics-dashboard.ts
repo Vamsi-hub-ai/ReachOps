@@ -27,7 +27,7 @@ export const handler: Handler = async (event) => {
     });
 
     const totalProspectsCount = await prisma.prospect.count({
-      where: { workspaceId: { in: workspaceIds } }
+      where: { campaign: { workspaceId: { in: workspaceIds } } }
     });
 
     const totalSent = await prisma.message.count({
