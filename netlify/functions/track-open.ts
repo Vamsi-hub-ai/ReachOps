@@ -28,15 +28,14 @@ export const handler: Handler = async (event) => {
           data: { status: 'OPENED' }
         });
         
-        // Log the event
         await prisma.messageEvent.create({
           data: {
             messageId,
             eventType: 'OPEN',
-            metadata: {
+            eventDataJson: JSON.stringify({
               ip: event.headers['client-ip'] || event.headers['x-forwarded-for'] || 'unknown',
               userAgent: event.headers['user-agent'] || 'unknown'
-            }
+            })
           }
         });
       }

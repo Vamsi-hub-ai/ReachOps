@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,13 +18,25 @@ const categories = ['All', 'Cold Email', 'Follow-up', 'Meeting', 'Breakup'];
 
 export default function TemplateList() {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState(mockTemplates);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
 
+  useEffect(() => {
+    const saved = localStorage.getItem('email_templates');
+    if (saved) {
+      setTemplates(JSON.parse(saved));
+    } else {
+      setTemplates(mockTemplates);
+      localStorage.setItem('email_templates', JSON.stringify(mockTemplates));
+    }
+  }, []);
+
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this template?')) {
-      setTemplates(templates.filter(t => t.id !== id));
+      const updated = templates.filter(t => t.id !== id);
+      setTemplates(updated);
+      localStorage.setItem('email_templates', JSON.stringify(updated));
     }
   };
 
@@ -101,8 +113,8 @@ export default function TemplateList() {
               <h3 className="font-semibold text-gray-900 text-lg truncate mb-1">{template.name}</h3>
               
               <div className="flex items-center justify-between text-xs text-gray-500 mt-4">
-                <span>Edited {template.lastEdited}</span>
-                <span className="font-medium bg-gray-100 px-2 py-1 rounded text-gray-700">{template.uses.toLocaleString()} uses</span>
+                <span>Edited {template.lastEdited || 'Just now'}</span>
+                <span className="font-medium bg-gray-100 px-2 py-1 rounded text-gray-700">{(template.uses || 0).toLocaleString()} uses</span>
               </div>
             </CardContent>
           </Card>

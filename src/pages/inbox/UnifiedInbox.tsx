@@ -124,26 +124,28 @@ export default function UnifiedInbox() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] -m-6 bg-white overflow-hidden animate-in fade-in duration-500 border-t border-gray-200">
-      
+    <div className="flex h-[calc(100vh-80px)] -m-6 bg-[#f8f9fc] overflow-hidden animate-in fade-in duration-500 border-t border-gray-200 relative">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-400/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-400/5 rounded-full blur-[100px] pointer-events-none"></div>
+
       {/* Schedule Modal */}
       {showScheduleModal && (
-        <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center animate-in fade-in">
-          <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Schedule Follow-up</h3>
-            <p className="text-sm text-gray-500 mb-4">The next follow-up email will be queued and sent at the specified date and time.</p>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center animate-in fade-in">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-white w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Schedule Follow-up</h3>
+            <p className="text-sm text-gray-500 mb-6">The next follow-up email will be queued and sent at the specified date and time.</p>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Date</label>
-                <Input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+                <label className="text-sm font-semibold text-gray-700 block mb-1.5">Date</label>
+                <Input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="h-11 bg-gray-50 focus:bg-white transition-colors" />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Time</label>
-                <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
+                <label className="text-sm font-semibold text-gray-700 block mb-1.5">Time</label>
+                <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} className="h-11 bg-gray-50 focus:bg-white transition-colors" />
               </div>
             </div>
-            <div className="mt-6 flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setShowScheduleModal(false)}>Cancel</Button>
+            <div className="mt-8 flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowScheduleModal(false)} className="rounded-xl border-gray-200 hover:bg-gray-50">Cancel</Button>
               <Button 
                 onClick={() => {
                   setThreadStatus(prev => ({ ...prev, [activeThread!.id]: `Scheduled (${scheduleDate} ${scheduleTime})` }));
@@ -152,7 +154,7 @@ export default function UnifiedInbox() {
                   setScheduleTime('');
                 }} 
                 disabled={!scheduleDate || !scheduleTime}
-                className="bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-primary/90 rounded-xl px-6"
               >
                 Confirm
               </Button>
@@ -162,15 +164,15 @@ export default function UnifiedInbox() {
       )}
 
       {/* Left Pane: Inbox List */}
-      <div className="w-96 flex-shrink-0 border-r border-gray-200 flex flex-col bg-gray-50/30">
-        <div className="p-4 border-b border-gray-200 bg-white space-y-4">
+      <div className="w-[420px] flex-shrink-0 border-r border-gray-200/60 flex flex-col bg-white/60 backdrop-blur-xl z-10">
+        <div className="p-5 border-b border-gray-200/60 space-y-5 bg-white/40">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900">Inbox</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Inbox</h1>
             {!routeCampaignId && (
               <select 
                 value={campaignFilter}
                 onChange={(e) => setCampaignFilter(e.target.value)}
-                className="text-sm border border-gray-200 rounded-md px-2 py-1 bg-gray-50 text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary"
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white shadow-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium"
               >
                 {mockCampaigns.map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -179,9 +181,9 @@ export default function UnifiedInbox() {
             )}
           </div>
           
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input placeholder="Search emails..." className="pl-9 bg-gray-50 border-gray-200" />
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+            <Input placeholder="Search emails, leads, or companies..." className="pl-10 h-11 bg-gray-50/80 border-gray-200/80 focus:bg-white rounded-xl transition-all shadow-sm" />
           </div>
 
           <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
@@ -189,8 +191,8 @@ export default function UnifiedInbox() {
               <button 
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                  filter === f ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-300 ${
+                  filter === f ? 'bg-gray-900 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
                 }`}
               >
                 {f}
@@ -204,22 +206,22 @@ export default function UnifiedInbox() {
             <div 
               key={thread.id}
               onClick={() => setActiveThreadId(thread.id)}
-              className={`p-4 border-b border-gray-100 cursor-pointer transition-colors relative ${
-                activeThreadId === thread.id ? 'bg-blue-50/50' : 'hover:bg-gray-50'
+              className={`p-5 border-b border-gray-100 cursor-pointer transition-all duration-300 relative group ${
+                activeThreadId === thread.id ? 'bg-white shadow-[0_0_20px_rgba(0,0,0,0.03)] z-10' : 'hover:bg-white/80'
               }`}
             >
               {activeThreadId === thread.id && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-md"></div>
               )}
               
-              <div className="flex justify-between items-start mb-1">
-                <div className="flex items-center gap-2">
-                  <span className={`font-semibold text-sm ${thread.unread ? 'text-gray-900' : 'text-gray-600'}`}>
+              <div className="flex justify-between items-start mb-1.5">
+                <div className="flex items-center gap-2.5">
+                  <span className={`font-bold text-[15px] tracking-tight transition-colors ${thread.unread ? 'text-gray-900' : 'text-gray-700'}`}>
                     {thread.name}
                   </span>
-                  {thread.unread && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
+                  {thread.unread && <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>}
                 </div>
-                <span className="text-xs text-gray-500 whitespace-nowrap">{thread.time}</span>
+                <span className={`text-xs whitespace-nowrap font-medium ${activeThreadId === thread.id ? 'text-blue-600' : 'text-gray-400'}`}>{thread.time}</span>
               </div>
               
               <p className={`text-xs mb-2 truncate ${thread.unread ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
@@ -241,18 +243,18 @@ export default function UnifiedInbox() {
 
       {/* Right Pane: Thread Detail */}
       {activeThread ? (
-        <div className="flex-1 flex flex-col min-w-0 bg-white">
+        <div className="flex-1 flex flex-col min-w-0 bg-transparent z-10">
           {/* Thread Header Toolbar */}
-          <div className="h-16 border-b border-gray-200 px-6 flex items-center justify-between flex-shrink-0 bg-white shadow-sm z-10">
+          <div className="h-[76px] border-b border-gray-200/60 px-8 flex items-center justify-between flex-shrink-0 bg-white/70 backdrop-blur-xl shadow-sm z-20">
             <div className="flex items-center gap-4">
-              <h2 className="text-lg font-bold text-gray-900 truncate">{activeThread.subject}</h2>
-              <span className={`px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide ${getTagColor(activeThread.tag)}`}>
+              <h2 className="text-xl font-bold text-gray-900 truncate tracking-tight">{activeThread.subject}</h2>
+              <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase shadow-sm border border-transparent ${getTagColor(activeThread.tag)}`}>
                 {activeThread.tag}
               </span>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="text-gray-600 h-9">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" className="text-gray-700 font-semibold h-10 px-4 rounded-xl border-gray-200 hover:bg-gray-50 shadow-sm transition-all hover:-translate-y-0.5">
                 <Pause className="w-4 h-4 mr-2 text-amber-500" /> Pause Sequence
               </Button>
               
@@ -260,17 +262,17 @@ export default function UnifiedInbox() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="text-gray-600 h-9"
+                  className="text-gray-700 font-semibold h-10 px-4 rounded-xl border-gray-200 hover:bg-gray-50 shadow-sm transition-all hover:-translate-y-0.5"
                   onClick={() => setShowLeadDropdown(!showLeadDropdown)}
                 >
-                  <Check className="w-4 h-4 mr-2 text-green-500" /> Mark Lead <ChevronDown className="w-3 h-3 ml-2 text-gray-400" />
+                  <Check className="w-4 h-4 mr-2 text-green-500" /> Mark Lead <ChevronDown className="w-3.5 h-3.5 ml-2 text-gray-400" />
                 </Button>
                 {showLeadDropdown && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 shadow-lg rounded-md z-50 py-1">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] rounded-xl z-50 py-2 overflow-hidden animate-in slide-in-from-top-2">
                     {['Lead', 'Warm', 'Cold', 'DNC', 'Invalid Contact', 'Schedule'].map(opt => (
                       <button 
                         key={opt} 
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
+                        className="block w-full text-left px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                         onClick={() => {
                           if (opt === 'Schedule') {
                             setShowScheduleModal(true);
@@ -287,35 +289,37 @@ export default function UnifiedInbox() {
                 )}
               </div>
 
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-500">
+              <div className="w-px h-6 bg-gray-200 mx-1"></div>
+              
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors">
                 <Archive className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-500">
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden relative">
             {/* Thread History */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-8 space-y-8 scroll-smooth relative">
               {activeThread.history.map((msg: Message, i: number) => (
-                <div key={i} className="flex gap-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm ${msg.sender === 'You' ? 'bg-primary' : 'bg-slate-700'}`}>
+                <div key={i} className={`flex gap-4 animate-in slide-in-from-bottom-2 fade-in duration-500`} style={{ animationDelay: `${i * 100}ms` }}>
+                  <div className={`w-11 h-11 rounded-2xl shadow-sm flex items-center justify-center flex-shrink-0 text-white font-bold text-sm bg-gradient-to-br ${msg.sender === 'You' ? 'from-blue-600 to-indigo-600 ring-2 ring-indigo-200' : 'from-slate-700 to-slate-900'}`}>
                     {msg.sender === 'You' ? 'ME' : msg.sender.charAt(0)}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <Card className="shadow-none border-gray-200">
-                      <CardHeader className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex flex-row items-center justify-between space-y-0">
+                  <div className="flex-1 min-w-0 max-w-3xl">
+                    <Card className="shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border-gray-100 rounded-2xl overflow-hidden group hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] transition-shadow">
+                      <CardHeader className={`px-5 py-3.5 border-b flex flex-row items-center justify-between space-y-0 ${msg.sender === 'You' ? 'bg-indigo-50/50 border-indigo-100/50' : 'bg-gray-50/50 border-gray-100'}`}>
                         <div>
-                          <span className="font-semibold text-gray-900 text-sm">{msg.sender}</span>
+                          <span className="font-bold text-gray-900 text-[15px]">{msg.sender}</span>
                           {msg.sender !== 'You' && (
-                            <span className="text-gray-500 text-xs ml-2">&lt;{activeThread.email}&gt;</span>
+                            <span className="text-gray-500 text-xs ml-2 font-medium">&lt;{activeThread.email}&gt;</span>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500">{msg.time}</span>
+                        <span className="text-xs font-semibold text-gray-400 group-hover:text-gray-500 transition-colors">{msg.time}</span>
                       </CardHeader>
-                      <CardContent className="p-4 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                      <CardContent className="p-6 text-[15px] text-gray-700 whitespace-pre-wrap leading-relaxed bg-white">
                         {msg.body}
                       </CardContent>
                     </Card>
@@ -324,28 +328,33 @@ export default function UnifiedInbox() {
               ))}
               
               {/* Quick Reply Box */}
-              <div className="flex gap-4 pt-4">
-                 <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-primary text-white font-bold text-sm">
+              <div className="flex gap-4 pt-6 pb-4 sticky bottom-0">
+                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-sm ring-2 ring-indigo-200">
                     ME
                   </div>
-                  <div className="flex-1 border border-gray-200 rounded-lg shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary overflow-hidden transition-all">
+                  <div className="flex-1 border border-gray-200/80 rounded-2xl shadow-xl shadow-gray-200/40 focus-within:ring-4 focus-within:ring-indigo-100 focus-within:border-indigo-400 overflow-hidden transition-all bg-white/80 backdrop-blur-xl max-w-3xl">
                     <textarea 
-                      className="w-full min-h-[120px] p-4 text-sm text-gray-700 focus:outline-none resize-y"
-                      placeholder={`Reply to ${activeThread.name}...`}
+                      className="w-full min-h-[140px] p-5 text-[15px] text-gray-800 focus:outline-none resize-y bg-transparent placeholder-gray-400"
+                      placeholder={`Draft a reply to ${activeThread.name}...`}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                     />
-                    <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex justify-between items-center">
+                    <div className="bg-gray-50/80 px-5 py-3.5 border-t border-gray-100 flex justify-between items-center">
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" className="h-8 text-gray-500">
+                        <Button variant="ghost" size="sm" className="h-9 text-gray-600 font-medium hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
                           Template
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 text-gray-500">
+                        <Button variant="ghost" size="sm" className="h-9 text-gray-600 font-medium hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
                           Variables
                         </Button>
                       </div>
-                      <Button size="sm" className="h-8" disabled={!replyText} onClick={handleSendReply}>
-                        <Send className="w-3.5 h-3.5 mr-2" /> Send Reply
+                      <Button 
+                        size="sm" 
+                        className={`h-10 px-6 rounded-xl font-bold shadow-sm transition-all ${replyText ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:-translate-y-0.5 hover:shadow-md hover:shadow-indigo-500/30' : 'bg-gray-100 text-gray-400'}`} 
+                        disabled={!replyText} 
+                        onClick={handleSendReply}
+                      >
+                        <Send className={`w-4 h-4 mr-2 ${replyText ? 'animate-pulse' : ''}`} /> Send Reply
                       </Button>
                     </div>
                   </div>

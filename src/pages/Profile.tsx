@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +12,10 @@ import { TIMEZONES } from '@/lib/timezones';
 
 export default function Profile() {
   const [personalInfo, setPersonalInfo] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: ''
+    firstName: 'Vamsi',
+    lastName: 'Pallela',
+    email: 'vamsipallela31@gmail.com',
+    phone: '7569692277'
   });
 
   const [passwords, setPasswords] = useState({
@@ -31,6 +31,23 @@ export default function Profile() {
     campaignAlerts: true,
     twoFactor: false
   });
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('user_profile');
+    if (savedProfile) {
+      setPersonalInfo(JSON.parse(savedProfile));
+    }
+  }, []);
+
+  const handleSaveProfile = () => {
+    setIsSaving(true);
+    localStorage.setItem('user_profile', JSON.stringify(personalInfo));
+    setTimeout(() => {
+      setIsSaving(false);
+    }, 500);
+  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-in fade-in duration-500">
@@ -49,7 +66,7 @@ export default function Profile() {
             <CardContent className="p-6 text-center">
               <div className="relative inline-block">
                 <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-blue-400 text-white flex items-center justify-center font-bold text-5xl mx-auto shadow-md ring-4 ring-white">
-                  {personalInfo.firstName ? personalInfo.firstName.charAt(0) : 'U'}
+                  {personalInfo.firstName ? personalInfo.firstName.charAt(0).toUpperCase() : 'V'}
                 </div>
                 <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:text-primary transition-colors cursor-pointer">
                   <Camera className="w-4 h-4" />
@@ -152,7 +169,9 @@ export default function Profile() {
               </div>
 
               <div className="pt-4 flex justify-end">
-                <Button>Save Changes</Button>
+                <Button onClick={handleSaveProfile} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
             </CardContent>
           </Card>

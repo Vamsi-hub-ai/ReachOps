@@ -50,6 +50,8 @@ function createMimeMessage(to: string, from: string, subject: string, htmlBody: 
     `To: ${to}`,
     `From: ${from}`,
     `Subject: =?utf-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    `Message-ID: <${messageId}@${baseUrl.replace(/^https?:\/\//, '')}>`,
+    `Date: ${new Date().toUTCString()}`,
     'MIME-Version: 1.0',
     `List-Unsubscribe: <${unsubscribeUrl}>`,
     `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
@@ -98,7 +100,7 @@ export async function sendSequenceEmail(
     const trackingPixel = `<img src="${baseUrl}/api/track/open/${messageId}.gif" width="1" height="1" style="display:none;" />`;
     bodyHtml += trackingPixel;
 
-    const from = `${account.displayName} <${account.email}>`;
+    const from = account.displayName ? `${account.displayName} <${account.email}>` : account.email;
 
     const raw = createMimeMessage(prospect.email, from, subject, bodyHtml, messageId);
 

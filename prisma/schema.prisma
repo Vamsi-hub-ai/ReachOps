@@ -31,6 +31,7 @@ model Workspace {
   campaigns        Campaign[]
   suppressions     Suppression[]
   auditLogs        AuditLog[]
+  templates        Template[]
 }
 
 model WorkspaceMember {
@@ -226,4 +227,17 @@ model AuditLog {
   createdAt    DateTime  @default(now())
   workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Template {
+  id          String    @id @default(uuid())
+  workspaceId String
+  name        String
+  category    String
+  subject     String
+  body        String
+  uses        Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }

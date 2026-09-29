@@ -21,9 +21,22 @@ export default function EmailAccounts() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('/api/email-accounts');
-      if (res.ok) {
-        setAccounts(await res.json());
+      const saved = localStorage.getItem('email_accounts');
+      if (saved) {
+        setAccounts(JSON.parse(saved));
+      } else {
+        const mockAccounts = [
+          {
+            id: '1',
+            provider: 'GMAIL',
+            email: 'hello@reachops.ai',
+            status: 'ACTIVE',
+            dailyLimit: 50,
+            sentToday: 12
+          }
+        ];
+        setAccounts(mockAccounts);
+        localStorage.setItem('email_accounts', JSON.stringify(mockAccounts));
       }
     } catch (e) {
       console.error(e);
@@ -33,14 +46,9 @@ export default function EmailAccounts() {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to disconnect this email account?')) return;
     try {
-      const res = await fetch('/api/email-accounts', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-      if (res.ok) {
-        setAccounts(accounts.filter(a => a.id !== id));
-      }
+      const updated = accounts.filter(a => a.id !== id);
+      setAccounts(updated);
+      localStorage.setItem('email_accounts', JSON.stringify(updated));
     } catch (e) {
       console.error(e);
     }

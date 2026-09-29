@@ -35,25 +35,25 @@ export const handler = schedule('*/5 * * * *', async (event) => {
       return { statusCode: 200, body: 'No pending emails' };
     }
 
-    // 2. We need an email account to send from for each campaign.
-    // For simplicity, we find the first active Gmail account for the workspace.
-    // In production, campaign or user should have an explicitly selected sender.
-    const workspaceAccounts: Record<string, string | null> = {};
-
     for (const enrollment of enrollments) {
-      const workspaceId = enrollment.campaign.workspaceId;
-      if (workspaceAccounts[workspaceId] === undefined) {
-        const account = await prisma.emailAccount.findFirst({
-          where: { workspaceId, provider: 'GMAIL', status: 'ACTIVE' }
-        });
-        workspaceAccounts[workspaceId] = account ? account.id : null;
+      // PRODUCTION FIX: Inbox Rotation & Daily Limits
+      // Fetch available accounts dynamically per email to support round-robin rotation
+      const accounts = await prisma.emailAccount.findMany({
+        where: { 
+          workspaceId: enrollment.campaign.workspaceId, 
+          status: 'ACTIVE' 
+        },
+        orderBy: { sentToday: 'asc' }
+      });
+
+      const account = accounts.find(acc => acc.sentToday < acc.dailyLimit);
+
+      if (!account) {
+        console.error(`No available sender account (limits reached) for workspace ${enrollment.campaign.workspaceId}`);
+        continue; // Skip this enrollment until tomorrow
       }
 
-      const accountId = workspaceAccounts[workspaceId];
-      if (!accountId) {
-        console.error(`No active sender account for workspace ${workspaceId}`);
-        continue; // Skip this enrollment
-      }
+      const accountId = account.id;
 
       const sequence = enrollment.campaign.sequences[0];
       if (!sequence || sequence.steps.length === 0) {
@@ -104,12 +104,23 @@ export const handler = schedule('*/5 * * * *', async (event) => {
           }
         });
 
+        // Update account limits
+        await prisma.emailAccount.update({
+          where: { id: accountId },
+          data: { 
+            sentToday: { increment: 1 },
+            lastSentAt: new Date()
+          }
+        });
+
         // 5. Calculate next step and update enrollment
         const nextStep = sequence.steps.find(s => s.stepNumber === currentStep.stepNumber + 1);
         
         if (nextStep) {
           const nextTime = new Date();
-          nextTime.setDate(nextTime.getDate() + nextStep.delayDays);
+          nextTime.setDate(nextTime.getDate() + (nextStep.delayDays || 0));
+          nextTime.setHours(nextTime.getHours() + (nextStep.delayHours || 0));
+          nextTime.setMinutes(nextTime.getMinutes() + (nextStep.delayMinutes || 0));
           
           await prisma.campaignEnrollment.update({
             where: { id: enrollment.id },
