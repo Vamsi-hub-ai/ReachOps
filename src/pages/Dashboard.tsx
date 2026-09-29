@@ -1,4 +1,4 @@
-
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -39,11 +39,37 @@ const Sparkline = ({ data }: { data: number[] }) => {
 };
 
 export default function Dashboard() {
-  // Real-time state (Simulated values for now)
-  const emailsSent = 0;
-  const replies = 0;
+  const [campaigns, setCampaigns] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('campaigns');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to parse campaigns from local storage', e);
+    }
+    return [];
+  });
+
+  const [emailAccounts, setEmailAccounts] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/email-accounts')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setEmailAccounts(data);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
   const chartData = [12, 18, 15, 22, 28, 25, 30, 35, 32, 40, 45, 42, 50, 48, 55, 60, 58, 65, 70, 68, 75, 80, 78, 85, 90, 88, 95, 100, 98, 110];
-  const campaigns: any[] = [];
+
+  const activeCampaignsCount = campaigns.filter(c => c.status === 'Running').length;
+  const totalProspectsCount = campaigns.reduce((sum, c) => sum + (Number(c.prospects) || 0), 0);
+  const totalSentCount = campaigns.reduce((sum, c) => sum + (Number(c.sent) || 0), 0);
+  const totalRepliesCount = campaigns.reduce((sum, c) => sum + (Number(c.replies) || 0), 0);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-500">
@@ -63,13 +89,13 @@ export default function Dashboard() {
       {/* 8 KPI Cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Active Campaigns', value: '0', icon: Activity },
-          { label: 'Total Prospects', value: '0', icon: Users },
-          { label: 'Emails Sent', value: emailsSent.toLocaleString(), icon: Send },
-          { label: 'Replies', value: replies.toLocaleString(), icon: Reply },
+          { label: 'Active Campaigns', value: activeCampaignsCount.toString(), icon: Activity },
+          { label: 'Total Prospects', value: totalProspectsCount.toLocaleString(), icon: Users },
+          { label: 'Emails Sent', value: totalSentCount.toLocaleString(), icon: Send },
+          { label: 'Replies', value: totalRepliesCount.toLocaleString(), icon: Reply },
           { label: 'Bounce Rate', value: '0%', icon: AlertTriangle, trend: '+0%' },
-          { label: 'Reply Rate', value: '0%', icon: Reply, trend: '+0%' },
-          { label: 'Scheduled', value: '0', icon: CalendarClock },
+          { label: 'Reply Rate', value: totalSentCount > 0 ? `${((totalRepliesCount / totalSentCount) * 100).toFixed(1)}%` : '0%', icon: Reply, trend: '+0%' },
+          { label: 'Scheduled', value: campaigns.filter(c => c.status === 'Scheduled').length.toString(), icon: CalendarClock },
           { label: 'Emails Today', value: '0 / 1,000', icon: Mail },
         ].map((stat, i) => (
           <Card key={i} className="hover:shadow-md transition-shadow relative overflow-hidden group">
@@ -108,29 +134,60 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <Card className="col-span-3 lg:col-span-1 shadow-sm">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks to get started</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {[
-              { label: 'Create Campaign', icon: Send, path: '/campaigns/new' },
-              { label: 'Add Email Account', icon: Mail, path: '/email-accounts' },
-              { label: 'Connect Google Sheet', icon: Database, path: '/settings' },
-              { label: 'Create Template', icon: FileText, path: '/templates' },
-              { label: 'Add Prospect', icon: UserPlus, path: '/prospects' },
-            ].map((action, i) => (
-              <Button key={i} variant="outline" className="w-full justify-start h-12 hover:border-primary/50 transition-colors" asChild>
-                <Link to={action.path}>
-                  <action.icon className="w-5 h-5 mr-3 text-gray-500" />
-                  {action.label}
-                </Link>
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
+        {/* Right Sidebar */}
+        <div className="col-span-3 lg:col-span-1 space-y-6">
+          {/* Quick Actions */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common tasks to get started</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                { label: 'Create Campaign', icon: Send, path: '/campaigns/new' },
+                { label: 'Add Email Account', icon: Mail, path: '/email-accounts' },
+                { label: 'Connect Google Sheet', icon: Database, path: '/settings' },
+                { label: 'Create Template', icon: FileText, path: '/templates' },
+                { label: 'Add Prospect', icon: UserPlus, path: '/prospects' },
+              ].map((action, i) => (
+                <Button key={i} variant="outline" className="w-full justify-start h-12 hover:border-primary/50 transition-colors" asChild>
+                  <Link to={action.path}>
+                    <action.icon className="w-5 h-5 mr-3 text-gray-500" />
+                    {action.label}
+                  </Link>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Connected Accounts */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Connected Accounts</CardTitle>
+              <CardDescription>Active sending accounts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {emailAccounts.length > 0 ? (
+                emailAccounts.map(account => (
+                  <div key={account.id} className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/30 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium truncate max-w-[150px]">{account.email}</span>
+                    </div>
+                    <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500 mb-3">No accounts connected.</p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/email-accounts">Connect Now</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Campaign Performance Table */}

@@ -110,14 +110,54 @@ export default function CampaignWizard() {
   };
   const prevStep = () => setStep(s => Math.max(1, s - 1));
 
-  const handleConnectSheet = () => {
+  const handleConnectSheet = async () => {
     if (!formData.sheetUrl) return;
     setIsConnecting(true);
-    // Simulate API connection
-    setTimeout(() => {
-      setIsConnecting(false);
-      updateForm('sheetId', 'connected-sheet-123');
-    }, 1500);
+    
+    try {
+      // Extract spreadsheet ID from URL
+      const match = formData.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (!match) {
+        alert("Invalid Google Sheet URL.");
+        setIsConnecting(false);
+        return;
+      }
+      
+      const spreadsheetId = match[1];
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
+      
+      const response = await fetch(csvUrl);
+      if (!response.ok) {
+        alert("Failed to access the Google Sheet. Make sure it is public.");
+        setIsConnecting(false);
+        return;
+      }
+      
+      const text = await response.text();
+      const firstLine = text.split('\n')[0];
+      if (!firstLine) {
+        alert("The Google Sheet is empty.");
+        setIsConnecting(false);
+        return;
+      }
+      
+      const headers = firstLine.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      const requiredHeaders = ["First Name", "Last Name", "Company", "Email"];
+      
+      const hasAllRequired = requiredHeaders.every(req => headers.includes(req));
+      if (!hasAllRequired) {
+        alert("The Google Sheet must contain exactly these headers: First Name, Last Name, Company, Email.");
+        setIsConnecting(false);
+        return;
+      }
+      
+      updateForm('sheetId', spreadsheetId);
+    } catch (e) {
+      alert("Error connecting to Google Sheet.");
+      console.error(e);
+    }
+    
+    setIsConnecting(false);
   };
 
   const handleLaunch = () => {
