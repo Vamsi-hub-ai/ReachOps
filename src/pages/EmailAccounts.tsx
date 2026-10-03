@@ -21,22 +21,12 @@ export default function EmailAccounts() {
 
   const fetchAccounts = async () => {
     try {
-      const saved = localStorage.getItem('email_accounts');
-      if (saved) {
-        setAccounts(JSON.parse(saved));
+      const res = await fetch('/api/email-accounts');
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data);
       } else {
-        const mockAccounts = [
-          {
-            id: '1',
-            provider: 'GMAIL',
-            email: 'hello@reachops.ai',
-            status: 'ACTIVE',
-            dailyLimit: 50,
-            sentToday: 12
-          }
-        ];
-        setAccounts(mockAccounts);
-        localStorage.setItem('email_accounts', JSON.stringify(mockAccounts));
+        console.error('Failed to fetch accounts');
       }
     } catch (e) {
       console.error(e);
