@@ -80,6 +80,10 @@ export default function DashboardLayout() {
   }, []);
 
   const isCurrentRoute = (href: string) => location.pathname === href || location.pathname.startsWith(`${href}/`);
+  const isCampaignDetail = location.pathname.startsWith('/campaigns/') && 
+    location.pathname !== '/campaigns' && 
+    location.pathname !== '/campaigns/new';
+  const isFullBleedRoute = isCampaignDetail || location.pathname === '/inbox';
 
   return (
     <div className="flex h-screen overflow-hidden bg-black text-slate-100">
@@ -241,12 +245,18 @@ export default function DashboardLayout() {
           </div>
         )}
 
-        {/* Main scrollable area */}
-        <main className="flex-1 overflow-y-auto p-6 relative bg-black">
-          <div className="mx-auto max-w-7xl h-full">
+        {/* Main Workspace Area (Full bleed for Campaign Detail & Inbox) */}
+        {isFullBleedRoute ? (
+          <main className="flex-1 overflow-hidden relative bg-black flex flex-col min-h-0">
             <Outlet />
-          </div>
-        </main>
+          </main>
+        ) : (
+          <main className="flex-1 overflow-y-auto p-6 relative bg-black">
+            <div className="mx-auto max-w-7xl h-full">
+              <Outlet />
+            </div>
+          </main>
+        )}
       </div>
 
       {/* Mobile sidebar backdrop */}

@@ -249,13 +249,13 @@ export default function UnifiedInbox() {
       )}
 
       {/* Left Pane: Inbox Threads List */}
-      <div className="w-[340px] lg:w-[370px] flex-shrink-0 border-r border-[#181a26] flex flex-col bg-[#08090f] z-10">
+      <div className="w-[340px] lg:w-[360px] flex-shrink-0 border-r border-[#1a1d2e] flex flex-col bg-[#08090f] z-10">
         
         {/* Top Header: Height 56px matching middle pane exactly */}
-        <div className="h-14 border-b border-[#181a26] px-4 flex items-center justify-between bg-[#0a0c13] flex-shrink-0">
+        <div className="h-14 border-b border-[#1a1d2e] px-4 flex items-center justify-between bg-[#0a0c14] flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-white tracking-wider uppercase">
-              {routeCampaignId ? 'Responses' : 'Inbox'}
+            <span className="text-xs font-semibold text-slate-200">
+              {routeCampaignId ? 'Campaign Responses' : 'Inbox'}
             </span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0080FF]/15 text-[#0080FF] border border-[#0080FF]/30">
               {threads.length}
@@ -288,13 +288,13 @@ export default function UnifiedInbox() {
         </div>
 
         {/* Sub-Toolbar: Search and Filters */}
-        <div className="p-3 border-b border-[#181a26] space-y-2.5 bg-[#08090f]">
+        <div className="p-3 border-b border-[#1a1d2e] space-y-2.5 bg-[#08090f]">
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
             <input 
               type="text"
-              placeholder="Search responses, leads..." 
+              placeholder="Search leads, responses, companies..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 h-8 text-xs bg-[#10121a] border border-[#1e2232] text-white placeholder-slate-500 focus:outline-none focus:border-[#0080FF] rounded-lg transition-colors" 
@@ -388,71 +388,70 @@ export default function UnifiedInbox() {
 
       {/* Center Pane: Thread Detail & Conversation Composer */}
       {activeThread ? (
-        <div className="flex-1 flex flex-col min-w-0 bg-[#07080e] z-10">
-          
-          {/* Thread Header Toolbar: Exactly 56px matching left pane */}
-          <div className="h-14 border-b border-[#181a26] px-6 flex items-center justify-between flex-shrink-0 bg-[#0a0c13]">
-            <div className="flex items-center gap-3 min-w-0">
-              <h2 className="text-xs font-bold text-white truncate tracking-tight">
-                {activeThread.subject}
-              </h2>
-              <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-wider flex-shrink-0 ${getTagColor(activeThread.tag)}`}>
-                {activeThread.tag}
-              </span>
-            </div>
+        <>
+          <div className="flex-1 flex flex-col min-w-0 bg-[#07080e] z-10">
             
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Mark Lead Dropdown */}
-              <div className="relative" ref={dropdownRef}>
+            {/* Thread Header Toolbar: Exactly 56px matching left and right pane */}
+            <div className="h-14 border-b border-[#1a1d2e] px-6 flex items-center justify-between flex-shrink-0 bg-[#0a0c14]">
+              <div className="flex items-center gap-3 min-w-0">
+                <h2 className="text-xs font-bold text-white truncate tracking-tight">
+                  {activeThread.subject}
+                </h2>
+                <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-wider flex-shrink-0 ${getTagColor(activeThread.tag)}`}>
+                  {activeThread.tag}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Mark Lead Dropdown */}
+                <div className="relative" ref={dropdownRef}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-[#10121a] border-[#222538] text-slate-200 hover:text-white hover:bg-[#161824] text-xs h-8 px-3 font-semibold cursor-pointer"
+                    onClick={() => setShowLeadDropdown(!showLeadDropdown)}
+                  >
+                    <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> 
+                    {threadStatus[String(activeThread.id)] || 'Mark Lead'} 
+                    <ChevronDown className="w-3 h-3 ml-1.5 text-slate-400" />
+                  </Button>
+
+                  {showLeadDropdown && (
+                    <div className="absolute right-0 top-full mt-1.5 w-44 bg-[#12141e] border border-[#25283a] shadow-2xl rounded-xl z-50 py-1 overflow-hidden animate-in fade-in text-xs">
+                      {['Lead', 'Warm', 'Cold', 'DNC', 'Invalid Contact', 'Schedule'].map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => {
+                            if (opt === 'Schedule') {
+                              setShowScheduleModal(true);
+                              setShowLeadDropdown(false);
+                            } else {
+                              handleMarkLeadStatus(opt);
+                            }
+                          }}
+                          className="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-[#1a1d2c] hover:text-white transition-colors cursor-pointer"
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pause Sequence Action */}
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="bg-[#10121a] border-[#222538] text-slate-200 hover:text-white hover:bg-[#161824] text-xs h-8 px-3 font-semibold cursor-pointer"
-                  onClick={() => setShowLeadDropdown(!showLeadDropdown)}
+                  className="bg-[#10121a] border-[#222538] text-slate-200 hover:text-white hover:bg-[#161824] text-xs h-8 px-3 cursor-pointer"
+                  onClick={() => handleMarkLeadStatus('Paused')}
                 >
-                  <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> 
-                  {threadStatus[String(activeThread.id)] || 'Mark Lead'} 
-                  <ChevronDown className="w-3 h-3 ml-1.5 text-slate-400" />
+                  <Pause className="w-3.5 h-3.5 mr-1.5 text-amber-400" /> 
+                  Pause Sequence
                 </Button>
-
-                {showLeadDropdown && (
-                  <div className="absolute right-0 top-full mt-1.5 w-44 bg-[#12141e] border border-[#25283a] shadow-2xl rounded-xl z-50 py-1 overflow-hidden animate-in fade-in text-xs">
-                    {['Lead', 'Warm', 'Cold', 'DNC', 'Invalid Contact', 'Schedule'].map(opt => (
-                      <button
-                        key={opt}
-                        onClick={() => {
-                          if (opt === 'Schedule') {
-                            setShowScheduleModal(true);
-                            setShowLeadDropdown(false);
-                          } else {
-                            handleMarkLeadStatus(opt);
-                          }
-                        }}
-                        className="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-[#1a1d2c] hover:text-white transition-colors cursor-pointer"
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-
-              {/* Pause Sequence Action */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="bg-[#10121a] border-[#222538] text-slate-200 hover:text-white hover:bg-[#161824] text-xs h-8 px-3 cursor-pointer"
-                onClick={() => handleMarkLeadStatus('Paused')}
-              >
-                <Pause className="w-3.5 h-3.5 mr-1.5 text-amber-400" /> 
-                Pause Sequence
-              </Button>
             </div>
-          </div>
 
-          {/* Conversation Messages Stream */}
-          <div className="flex-1 flex flex-col justify-between overflow-hidden">
-            
+            {/* Conversation Messages Stream */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {activeThread.history.map((msg, index) => {
                 const isMe = msg.sender.toLowerCase().includes('you') || msg.sender.toLowerCase().includes('me');
@@ -492,15 +491,17 @@ export default function UnifiedInbox() {
                   </div>
                 );
               })}
+            </div>
 
-              {/* Quick Reply Composer Box */}
-              <div className="flex gap-3 pt-4 pb-2 sticky bottom-0">
+            {/* Pinned Quick Reply Composer Box */}
+            <div className="p-4 bg-[#08090f] border-t border-[#1a1d2e] flex-shrink-0">
+              <div className="flex gap-3 max-w-4xl">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#0080FF] text-white font-bold text-xs shadow-md shadow-[#0080FF]/25">
                   ME
                 </div>
-                <div className="flex-1 border border-[#1e2232] rounded-2xl shadow-2xl bg-[#0c0e16] focus-within:border-[#0080FF] overflow-hidden transition-all max-w-3xl">
+                <div className="flex-1 border border-[#1e2232] rounded-2xl shadow-2xl bg-[#0c0e16] focus-within:border-[#0080FF] overflow-hidden transition-all">
                   <textarea 
-                    className="w-full min-h-[100px] p-3.5 text-xs text-slate-100 focus:outline-none resize-y bg-transparent placeholder-slate-500 leading-relaxed font-sans"
+                    className="w-full min-h-[90px] p-3.5 text-xs text-slate-100 focus:outline-none resize-y bg-transparent placeholder-slate-500 leading-relaxed font-sans"
                     placeholder={`Reply directly to ${activeThread.name}...`}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
@@ -525,11 +526,26 @@ export default function UnifiedInbox() {
                   </div>
                 </div>
               </div>
-
             </div>
 
-            {/* Right Context Panel (CRM & Campaign Context) */}
-            <div className="w-64 border-l border-[#181a26] bg-[#08090f] p-5 hidden xl:block overflow-y-auto space-y-6">
+          </div>
+
+          {/* Right Context Panel (CRM & Campaign Context) */}
+          <div className="w-72 xl:w-80 border-l border-[#1a1d2e] bg-[#08090f] hidden xl:flex flex-col flex-shrink-0 z-10">
+            
+            {/* Right Top Header: Height 56px matching left and center pane exactly */}
+            <div className="h-14 border-b border-[#1a1d2e] px-5 flex items-center justify-between bg-[#0a0c14] flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <User className="w-3.5 h-3.5 text-[#0080FF]" />
+                <span className="text-xs font-semibold text-slate-200">
+                  Prospect Details
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono">Lead Info</span>
+            </div>
+
+            {/* Right Content Stream */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
               
               {/* Lead Details */}
               <div>
@@ -598,8 +614,7 @@ export default function UnifiedInbox() {
             </div>
 
           </div>
-
-        </div>
+        </>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8 bg-[#07080e]">
           <div className="w-12 h-12 rounded-2xl bg-[#10121a] border border-[#1e2232] flex items-center justify-center mb-3 text-slate-400">

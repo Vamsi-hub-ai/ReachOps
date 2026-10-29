@@ -11,6 +11,7 @@ export default function CampaignDetailLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isInboxRoute = location.pathname.endsWith('/inbox') || location.pathname.includes('/inbox/');
+  const isCanvasRoute = isInboxRoute || location.pathname.endsWith('/editor');
   const [isActive, setIsActive] = useState(false);
   const [campaignTitle, setCampaignTitle] = useState(id === 'tga-sales' ? 'TGA-Sales' : (id || 'Untitled Campaign'));
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -110,7 +111,7 @@ export default function CampaignDetailLayout() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-slate-100 -m-6 selection:bg-[#0080FF]/30">
+    <div className="flex flex-col h-full w-full bg-black text-slate-100 selection:bg-[#0080FF]/30 overflow-hidden">
       
       {/* Top Navigation Bar matching Image 5 */}
       <header className="sticky top-0 z-30 bg-black border-b border-[#161822] px-6 h-14 flex items-center justify-between flex-shrink-0">
@@ -283,15 +284,17 @@ export default function CampaignDetailLayout() {
       />
 
       {/* Campaign Workspace Canvas */}
-      <main className="flex-1 overflow-hidden bg-black flex flex-col min-h-0">
-        {isInboxRoute ? (
+      {isCanvasRoute ? (
+        <main className="flex-1 overflow-hidden bg-black flex flex-col min-h-0">
           <Outlet />
-        ) : (
-          <div className="flex-1 overflow-y-auto p-6">
+        </main>
+      ) : (
+        <main className="flex-1 overflow-y-auto bg-black p-6">
+          <div className="mx-auto max-w-7xl">
             <Outlet />
           </div>
-        )}
-      </main>
+        </main>
+      )}
 
     </div>
   );
