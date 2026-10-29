@@ -61,23 +61,45 @@ export async function getAuthContext(event: any): Promise<AuthContext | null> {
       return null;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: {
-        workspaceMembers: {
-          select: {
-            workspaceId: true,
-            role: true,
-            workspace: {
-              select: {
-                id: true,
-                name: true,
+    let user: any = null;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        include: {
+          workspaceMembers: {
+            select: {
+              workspaceId: true,
+              role: true,
+              workspace: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
+    } catch (dbErr: any) {
+      console.warn('Database query during getAuthContext failed:', dbErr?.message);
+    }
+
+    // Demo fallback for resilient deployment on serverless
+    if (!user && (decoded.userId === 'demo-user-id' || decoded.email === 'demo@reachops.com')) {
+      return {
+        userId: 'demo-user-id',
+        user: {
+          id: 'demo-user-id',
+          email: 'demo@reachops.com',
+          name: 'Demo User',
+          avatar: null,
+        },
+        workspaceId: 'demo-workspace-id',
+        workspaceIds: ['demo-workspace-id'],
+        workspaceName: 'ReachOps Demo Workspace',
+        isDemo: true,
+      };
+    }
 
     if (!user) {
       return null;
@@ -110,8 +132,7 @@ export async function getAuthContext(event: any): Promise<AuthContext | null> {
       workspaceName,
       isDemo,
     };
-  } catch (err) {
-    // JWT verification failed (e.g., TokenExpiredError, JsonWebTokenError)
+  } catch {
     return null;
   }
 }

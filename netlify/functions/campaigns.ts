@@ -14,32 +14,97 @@ export const handler: Handler = async (event) => {
     const { workspaceId, workspaceIds } = auth;
 
     if (method === 'GET') {
-      const campaigns = await prisma.campaign.findMany({
-        where: { workspaceId: { in: workspaceIds } },
-        include: {
-          prospects: { select: { id: true } },
-          messages: { select: { id: true, status: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+      let formatted: any[] = [];
+      try {
+        const campaigns = await prisma.campaign.findMany({
+          where: { workspaceId: { in: workspaceIds } },
+          include: {
+            prospects: { select: { id: true } },
+            messages: { select: { id: true, status: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
 
-      const formatted = campaigns.map((c) => {
-        const sent = c.messages.filter((m) => m.status === 'SENT').length;
-        const replies = c.messages.filter((m) => m.status === 'REPLIED').length;
-        const rate = sent > 0 ? ((replies / sent) * 100).toFixed(1) + '%' : '0%';
+        formatted = campaigns.map((c) => {
+          const sent = c.messages.filter((m) => m.status === 'SENT').length;
+          const replies = c.messages.filter((m) => m.status === 'REPLIED').length;
+          const rate = sent > 0 ? ((replies / sent) * 100).toFixed(1) + '%' : '0%';
 
-        return {
-          id: c.id,
-          name: c.name,
-          status: c.status === 'ACTIVE' ? 'Running' : c.status === 'DRAFT' ? 'Draft' : 'Paused',
-          created: new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          prospects: c.prospects.length,
-          sent: sent,
-          replies: replies,
-          replyRate: rate,
-          nextSend: c.status === 'ACTIVE' ? 'Today, 14:00 (Rotated)' : 'Scheduled',
-        };
-      });
+          return {
+            id: c.id,
+            name: c.name,
+            status: c.status === 'ACTIVE' ? 'Running' : c.status === 'DRAFT' ? 'Draft' : 'Paused',
+            created: new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            prospects: c.prospects.length,
+            sent: sent,
+            replies: replies,
+            replyRate: rate,
+            nextSend: c.status === 'ACTIVE' ? 'Today, 14:00 (Rotated)' : 'Scheduled',
+          };
+        });
+      } catch (dbErr: any) {
+        console.warn('Prisma campaigns query failed:', dbErr?.message);
+      }
+
+      if (formatted.length === 0 && auth.isDemo) {
+        formatted = [
+          {
+            id: 'demo-c1',
+            name: '[DEMO] Inbound High-Intent Signups Nurture',
+            status: 'Running',
+            created: 'Oct 23, 2026',
+            prospects: 12,
+            sent: 8,
+            replies: 3,
+            replyRate: '37.5%',
+            nextSend: 'Today, 14:00 (Rotated)',
+          },
+          {
+            id: 'demo-c2',
+            name: '[DEMO] Product Hunt Beta Launch Sequence',
+            status: 'Running',
+            created: 'Oct 24, 2026',
+            prospects: 8,
+            sent: 5,
+            replies: 2,
+            replyRate: '40.0%',
+            nextSend: 'Today, 15:30 (Rotated)',
+          },
+          {
+            id: 'demo-c3',
+            name: '[DEMO] Enterprise Decision Makers Cold Outreach',
+            status: 'Paused',
+            created: 'Oct 25, 2026',
+            prospects: 6,
+            sent: 4,
+            replies: 1,
+            replyRate: '25.0%',
+            nextSend: 'Scheduled',
+          },
+          {
+            id: 'demo-c4',
+            name: '[DEMO] Re-engagement for Churned Free Trials',
+            status: 'Draft',
+            created: 'Oct 26, 2026',
+            prospects: 3,
+            sent: 0,
+            replies: 0,
+            replyRate: '0%',
+            nextSend: 'Draft',
+          },
+          {
+            id: 'demo-c5',
+            name: '[DEMO] Event Follow-Up (SaaS Growth Summit)',
+            status: 'Running',
+            created: 'Oct 27, 2026',
+            prospects: 1,
+            sent: 1,
+            replies: 1,
+            replyRate: '100%',
+            nextSend: 'Today, 18:00 (Rotated)',
+          },
+        ];
+      }
 
       return {
         statusCode: 200,

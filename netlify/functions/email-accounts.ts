@@ -12,10 +12,44 @@ export const handler: Handler = async (event) => {
     const { workspaceId, workspaceIds } = auth;
 
     if (event.httpMethod === 'GET') {
-      const emailAccounts = await prisma.emailAccount.findMany({
-        where: { workspaceId: { in: workspaceIds } },
-        orderBy: { createdAt: 'desc' },
-      });
+      let emailAccounts: any[] = [];
+      try {
+        emailAccounts = await prisma.emailAccount.findMany({
+          where: { workspaceId: { in: workspaceIds } },
+          orderBy: { createdAt: 'desc' },
+        });
+      } catch (dbErr: any) {
+        console.warn('Prisma emailAccount lookup failed:', dbErr?.message);
+      }
+
+      if (emailAccounts.length === 0 && auth.isDemo) {
+        emailAccounts = [
+          {
+            id: 'demo-acc-1',
+            email: 'alex@reachops-demo.io',
+            displayName: 'Alex Rivers (Founder)',
+            provider: 'GMAIL',
+            status: 'ACTIVE',
+            dailyLimit: 50,
+            sentToday: 14,
+            warmupEnabled: true,
+            warmupScore: 98,
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: 'demo-acc-2',
+            email: 'growth@reachops-demo.io',
+            displayName: 'ReachOps Growth Team',
+            provider: 'OUTLOOK',
+            status: 'ACTIVE',
+            dailyLimit: 75,
+            sentToday: 28,
+            warmupEnabled: true,
+            warmupScore: 95,
+            createdAt: new Date().toISOString(),
+          }
+        ];
+      }
 
       return {
         statusCode: 200,

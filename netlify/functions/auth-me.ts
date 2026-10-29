@@ -13,20 +13,52 @@ export const handler: Handler = async (event) => {
       return unauthorizedResponse('Unauthorized');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: auth.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-        workspaceMembers: {
-          include: {
-            workspace: true,
+    let user: any = null;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: auth.userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          workspaceMembers: {
+            include: {
+              workspace: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (dbErr: any) {
+      console.warn('Database query during auth-me failed:', dbErr?.message);
+    }
+
+    if (!user && (auth.isDemo || auth.userId === 'demo-user-id')) {
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: 'demo-user-id',
+          name: 'Demo User',
+          email: 'demo@reachops.com',
+          avatar: null,
+          isDemo: true,
+          workspaceName: 'ReachOps Demo Workspace',
+          workspaceMembers: [
+            {
+              id: 'demo-wm-id',
+              workspaceId: 'demo-workspace-id',
+              userId: 'demo-user-id',
+              role: 'OWNER',
+              workspace: {
+                id: 'demo-workspace-id',
+                name: 'ReachOps Demo Workspace',
+              },
+            },
+          ],
+        }),
+      };
+    }
 
     if (!user) {
       return unauthorizedResponse('User not found');

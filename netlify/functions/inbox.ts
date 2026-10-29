@@ -30,25 +30,30 @@ export const handler: Handler = async (event) => {
       }
 
       // We look for prospects with interactions or replies
-      const prospects = await prisma.prospect.findMany({
-        where: {
-          ...whereClause,
-          OR: [
-            { replied: true },
-            { status: { in: ['Replied', 'REPLIED', 'Opened', 'Lead', 'Warm'] } },
-            { messages: { some: { status: { in: ['REPLIED', 'OPENED', 'SENT'] } } } },
-          ]
-        },
-        include: {
-          campaign: { select: { id: true, name: true } },
-          enrollments: { take: 1, orderBy: { createdAt: 'desc' } },
-          messages: {
-            include: { sequenceStep: true, events: true },
-            orderBy: { sentAt: 'desc' },
+      let prospects: any[] = [];
+      try {
+        prospects = await prisma.prospect.findMany({
+          where: {
+            ...whereClause,
+            OR: [
+              { replied: true },
+              { status: { in: ['Replied', 'REPLIED', 'Opened', 'Lead', 'Warm'] } },
+              { messages: { some: { status: { in: ['REPLIED', 'OPENED', 'SENT'] } } } },
+            ]
           },
-        },
-        orderBy: { updatedAt: 'desc' },
-      });
+          include: {
+            campaign: { select: { id: true, name: true } },
+            enrollments: { take: 1, orderBy: { createdAt: 'desc' } },
+            messages: {
+              include: { sequenceStep: true, events: true },
+              orderBy: { sentAt: 'desc' },
+            },
+          },
+          orderBy: { updatedAt: 'desc' },
+        });
+      } catch (dbErr: any) {
+        console.warn('Prisma prospect lookup failed:', dbErr?.message);
+      }
 
       let threads = prospects.map((p) => {
         const lastMsg = p.messages[0];
@@ -109,6 +114,69 @@ export const handler: Handler = async (event) => {
           history,
         };
       });
+
+      if (threads.length === 0 && auth.isDemo) {
+        threads = [
+          {
+            id: 'demo-p-28',
+            prospectId: 'demo-p-28',
+            campaignId: 'demo-camp-beta-launch',
+            campaignName: '[DEMO] Product Hunt Beta Launch Sequence',
+            name: 'Ethan Hunt',
+            email: 'ethan.hunt@example.com',
+            company: 'Synergy Labs',
+            title: 'Managing Director',
+            time: '25 Oct, 06:16 am',
+            subject: 'Re: Thanks for supporting our launch, Ethan!',
+            snippet: 'Hi team, great launch on Product Hunt! What\'s the main difference between your warmup network a...',
+            tag: 'INTERESTED',
+            unread: false,
+            step: 'Step 1',
+            status: 'REPLIED',
+            history: [
+              {
+                sender: 'You',
+                time: '23 Oct, 06:16 pm',
+                body: 'Hi {{firstName}},\n\nSaw you engaged with ReachOps on Product Hunt. Here is exclusive early access to our automated warmup pool.\n\n{{accountSignature}}',
+              },
+              {
+                sender: 'Ethan Hunt',
+                time: '25 Oct, 06:16 am',
+                body: 'Hi team, great launch on Product Hunt! What\'s the main difference between your warmup network and Instantly?',
+              }
+            ],
+          },
+          {
+            id: 'demo-p-29',
+            prospectId: 'demo-p-29',
+            campaignId: 'demo-camp-beta-launch',
+            campaignName: '[DEMO] Product Hunt Beta Launch Sequence',
+            name: 'Maya Patel',
+            email: 'maya.patel@example.com',
+            company: 'Velocity AI',
+            title: 'VP Growth',
+            time: '25 Oct, 06:16 pm',
+            subject: 'Re: Thanks for supporting our launch, Maya!',
+            snippet: 'Congrats on the launch! We would love to test ReachOps on our staging domains next week.',
+            tag: 'POSITIVE',
+            unread: false,
+            step: 'Step 1',
+            status: 'REPLIED',
+            history: [
+              {
+                sender: 'You',
+                time: '24 Oct, 11:20 am',
+                body: 'Hi Maya,\n\nExcited to connect following the Product Hunt launch! Let me know if your team wants a demo account setup.',
+              },
+              {
+                sender: 'Maya Patel',
+                time: '25 Oct, 06:16 pm',
+                body: 'Congrats on the launch! We would love to test ReachOps on our staging domains next week.',
+              }
+            ],
+          }
+        ];
+      }
 
       // Filter by tag if selected
       if (filter && filter !== 'All') {

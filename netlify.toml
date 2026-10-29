@@ -3,6 +3,10 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[functions]
+  included_files = ["prisma/**"]
+  node_bundler = "esbuild"
+
 [dev]
   command = "npx vite"
   port = 8888

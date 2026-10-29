@@ -13,39 +13,69 @@ export const handler: Handler = async (event) => {
 
     const { workspaceIds } = auth;
 
-    // Aggregations from real Prisma DB for user's workspaces
-    const activeCampaignsCount = await prisma.campaign.count({
-      where: { workspaceId: { in: workspaceIds }, status: 'ACTIVE' },
-    });
+    let activeCampaignsCount = 0;
+    let totalCampaignsCount = 0;
+    let totalProspectsCount = 0;
+    let totalSent = 0;
+    let totalOpened = 0;
+    let totalReplied = 0;
 
-    const totalCampaignsCount = await prisma.campaign.count({
-      where: { workspaceId: { in: workspaceIds } },
-    });
+    try {
+      // Aggregations from real Prisma DB for user's workspaces
+      activeCampaignsCount = await prisma.campaign.count({
+        where: { workspaceId: { in: workspaceIds }, status: 'ACTIVE' },
+      });
 
-    const totalProspectsCount = await prisma.prospect.count({
-      where: { campaign: { workspaceId: { in: workspaceIds } } },
-    });
+      totalCampaignsCount = await prisma.campaign.count({
+        where: { workspaceId: { in: workspaceIds } },
+      });
 
-    const totalSent = await prisma.message.count({
-      where: {
-        campaign: { workspaceId: { in: workspaceIds } },
-        status: 'SENT',
-      },
-    });
+      totalProspectsCount = await prisma.prospect.count({
+        where: { campaign: { workspaceId: { in: workspaceIds } } },
+      });
 
-    const totalOpened = await prisma.message.count({
-      where: {
-        campaign: { workspaceId: { in: workspaceIds } },
-        status: 'OPENED',
-      },
-    });
+      totalSent = await prisma.message.count({
+        where: {
+          campaign: { workspaceId: { in: workspaceIds } },
+          status: 'SENT',
+        },
+      });
 
-    const totalReplied = await prisma.message.count({
-      where: {
-        campaign: { workspaceId: { in: workspaceIds } },
-        status: 'REPLIED',
-      },
-    });
+      totalOpened = await prisma.message.count({
+        where: {
+          campaign: { workspaceId: { in: workspaceIds } },
+          status: 'OPENED',
+        },
+      });
+
+      totalReplied = await prisma.message.count({
+        where: {
+          campaign: { workspaceId: { in: workspaceIds } },
+          status: 'REPLIED',
+        },
+      });
+    } catch (dbErr: any) {
+      console.warn('Analytics DB lookup failed:', dbErr?.message);
+    }
+
+    if (totalCampaignsCount === 0 && auth.isDemo) {
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activeCampaigns: 4,
+          totalCampaigns: 5,
+          totalProspects: 1840,
+          totalSent: 1420,
+          totalOpened: 890,
+          totalReplied: 312,
+          openRate: '62.7%',
+          replyRate: '22.0%',
+          bounceRate: '0.4%',
+          emailsToday: '142 / 1,000',
+        }),
+      };
+    }
 
     const openRate = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) + '%' : '0.0%';
     const replyRate = totalSent > 0 ? ((totalReplied / totalSent) * 100).toFixed(1) + '%' : '0.0%';
