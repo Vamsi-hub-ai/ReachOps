@@ -1,9 +1,8 @@
 import { Handler } from '@netlify/functions';
 import { google } from 'googleapis';
 import { getGoogleClient } from '../lib/google-client';
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getAuthContext, unauthorizedResponse, forbiddenResponse } from '../lib/auth';
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -11,25 +10,21 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies.session;
-    if (!token) return { statusCode: 401, body: 'Unauthorized' };
-    
-    const secret = process.env.SESSION_SECRET || 'fallback-secret-key';
-    const decoded = jwt.verify(token, secret) as { userId: string };
+    const auth = await getAuthContext(event);
+    if (!auth) {
+      return unauthorizedResponse('Unauthorized');
+    }
 
-    const campaignId = event.path.split('/')[3]; // /api/campaigns/[id]/sync-sheet
+    const { workspaceIds } = auth;
+
+    const match = event.path.match(/\/campaigns\/([^/]+)/);
+    const campaignId = match ? match[1] : (event.queryStringParameters?.id || event.queryStringParameters?.campaignId);
+
     if (!campaignId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'campaignId is required' }) };
     }
 
     // Verify user has access to campaign
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { workspaceMembers: true }
-    });
-    
-    const workspaceIds = user?.workspaceMembers.map(m => m.workspaceId) || [];
     const campaign = await prisma.campaign.findFirst({
       where: { id: campaignId, workspaceId: { in: workspaceIds } },
       include: { sheet: true }
@@ -44,10 +39,8 @@ export const handler: Handler = async (event) => {
        return { statusCode: 400, body: JSON.stringify({ error: 'Column mapping not configured' }) };
     }
 
-    const mapping = JSON.parse(sheet.columnMappingJson); // { email: "ColA", firstName: "ColB", ... }
-    
-    // We need an email account to fetch the sheet. We'll find any active one in this workspace.
-    // In a full implementation, you might save the exact emailAccountId on the CampaignSheet.
+    const mapping = JSON.parse(sheet.columnMappingJson);
+
     const account = await prisma.emailAccount.findFirst({
       where: { workspaceId: campaign.workspaceId, provider: 'GMAIL', status: 'ACTIVE' }
     });
@@ -56,8 +49,8 @@ export const handler: Handler = async (event) => {
       return { statusCode: 403, body: JSON.stringify({ error: 'No active Google connection found for this workspace' }) };
     }
 
-    const auth = await getGoogleClient(account.id);
-    const sheets = google.sheets({ version: 'v4', auth });
+    const googleAuth = await getGoogleClient(account.id);
+    const sheets = google.sheets({ version: 'v4', auth: googleAuth });
 
     // Fetch the sheet data
     const response = await sheets.spreadsheets.values.get({
@@ -75,7 +68,6 @@ export const handler: Handler = async (event) => {
     
     let syncedCount = 0;
 
-    // Helper to find the index of a mapped column
     const getColIndex = (mappedColName: string) => headers.indexOf(mappedColName);
 
     const emailIdx = mapping.email ? getColIndex(mapping.email) : -1;
@@ -88,7 +80,6 @@ export const handler: Handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Email column mapping is invalid' }) };
     }
 
-    // Find the campaign's sequence to use for enrollment
     const sequence = await prisma.sequence.findFirst({
       where: { campaignId: campaign.id }
     });
@@ -107,7 +98,6 @@ export const handler: Handler = async (event) => {
       });
       const customFieldsJson = Object.keys(customData).length > 0 ? JSON.stringify(customData) : null;
 
-      // Find prospect first
       let prospect = await prisma.prospect.findFirst({
          where: { campaignId: campaign.id, email }
       });
@@ -130,7 +120,6 @@ export const handler: Handler = async (event) => {
          });
       }
 
-      // Add to campaign if not already in it
       const existingEnrollment = await prisma.campaignEnrollment.findFirst({
         where: { campaignId: campaign.id, prospectId: prospect.id }
       });
@@ -149,7 +138,6 @@ export const handler: Handler = async (event) => {
       syncedCount++;
     }
 
-    // Update last sync time
     await prisma.campaignSheet.update({
       where: { id: sheet.id },
       data: { lastSyncedAt: new Date() }

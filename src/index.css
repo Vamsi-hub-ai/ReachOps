@@ -4,35 +4,37 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 237 38% 20%;
-    --card: 0 0% 100%;
-    --card-foreground: 237 38% 20%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 237 38% 20%;
+    --background: 0 0% 0%; /* Pure Black Background */
+    --foreground: 210 40% 98%;
+    --card: 240 10% 7%; /* Deep Black Surface #111219 */
+    --card-foreground: 210 40% 98%;
+    --popover: 240 10% 7%;
+    --popover-foreground: 210 40% 98%;
     
-    /* Primary: Dark Indigo #393D7E */
-    --primary: 237 38% 36%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Pastel Blue #9FA0FF */
+    --primary: 239.4 100% 81.2%;
+    --primary-foreground: 237 45% 12%;
     
-    /* Secondary: Teal #6DC3BB */
-    --secondary: 174 42% 60%;
-    --secondary-foreground: 237 38% 20%;
+    /* Secondary: Pastel Teal #D5E8E6 */
+    --secondary: 173.7 30.5% 87.3%;
+    --secondary-foreground: 174 45% 18%;
     
-    /* Muted: Light Indigo #5459AC */
-    --muted: 237 35% 50%;
-    --muted-foreground: 237 10% 40%;
+    /* Muted: Soft Beige #FFF3E3 */
+    --muted: 240 10% 14%;
+    --muted-foreground: 220 15% 65%;
     
-    /* Accent: Pink #F2AEBB */
-    --accent: 349 71% 82%;
-    --accent-foreground: 237 38% 20%;
+    /* Accent: Coral Red #FF7171 */
+    --accent: 0 100% 72.2%;
+    --accent-foreground: 0 0% 100%;
     
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 237 38% 36%;
-    --radius: 0.5rem;
+    /* Destructive: Coral Red #FF7171 */
+    --destructive: 0 100% 72.2%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 240 8% 18%;
+    --input: 240 8% 18%;
+    --ring: 239.4 100% 81.2%;
+    --radius: 0.75rem;
   }
 }
 
@@ -41,6 +43,46 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-black text-slate-100 antialiased selection:bg-[#9FA0FF]/30;
+  }
+
+  /* Custom Sleek Dark Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #090a10;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #202235;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2e314d;
   }
 }
+
+/* Custom Palette Tokens based on user provided reference */
+:root {
+  --color-brand-blue: #9FA0FF;
+  --color-brand-teal: #D5E8E6;
+  --color-brand-beige: #FFF3E3;
+  --color-brand-red: #FF7171;
+}
+
+.bg-brand-blue { background-color: #9FA0FF; }
+.text-brand-blue { color: #9FA0FF; }
+.border-brand-blue { border-color: #9FA0FF; }
+
+.bg-brand-teal { background-color: #D5E8E6; }
+.text-brand-teal { color: #2D6B64; }
+.border-brand-teal { border-color: #D5E8E6; }
+
+.bg-brand-beige { background-color: #FFF3E3; }
+.text-brand-beige { color: #5C4A32; }
+.border-brand-beige { border-color: #FFF3E3; }
+
+.bg-brand-red { background-color: #FF7171; }
+.text-brand-red { color: #FF7171; }
+.border-brand-red { border-color: #FF7171; }

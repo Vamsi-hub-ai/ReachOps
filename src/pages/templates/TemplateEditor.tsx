@@ -46,43 +46,59 @@ export default function TemplateEditor() {
     }
   }, [id, isNew]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      const saved = localStorage.getItem('email_templates');
-      let templates = saved ? JSON.parse(saved) : [];
-      
+    try {
       if (isNew) {
-        const newId = Date.now().toString();
-        templates.unshift({
-          id: newId,
-          name: template.name,
-          category: template.category,
-          subject: template.subject,
-          body: template.body,
-          lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          uses: 0
+        await fetch('/api/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(template),
         });
       } else {
-        templates = templates.map((t: any) => {
-          if (t.id === id) {
-            return {
-              ...t,
-              name: template.name,
-              category: template.category,
-              subject: template.subject,
-              body: template.body,
-              lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            }
-          }
-          return t;
+        await fetch(`/api/templates`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, ...template }),
         });
       }
-      
-      localStorage.setItem('email_templates', JSON.stringify(templates));
-      setIsSaving(false);
-      navigate('/templates');
-    }, 500);
+    } catch (err) {
+      console.warn('Backend save failed, saved to local storage:', err);
+    }
+
+    const saved = localStorage.getItem('email_templates');
+    let templates = saved ? JSON.parse(saved) : [];
+    
+    if (isNew) {
+      const newId = Date.now().toString();
+      templates.unshift({
+        id: newId,
+        name: template.name,
+        category: template.category,
+        subject: template.subject,
+        body: template.body,
+        lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        uses: 0
+      });
+    } else {
+      templates = templates.map((t: any) => {
+        if (t.id === id) {
+          return {
+            ...t,
+            name: template.name,
+            category: template.category,
+            subject: template.subject,
+            body: template.body,
+            lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          };
+        }
+        return t;
+      });
+    }
+    
+    localStorage.setItem('email_templates', JSON.stringify(templates));
+    setIsSaving(false);
+    navigate('/templates');
   };
 
   const handleDeleteTemplate = () => {

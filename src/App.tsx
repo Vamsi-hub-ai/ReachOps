@@ -21,10 +21,10 @@ import CampaignDetailLayout from './layouts/CampaignDetailLayout';
 import CampaignAccounts from './pages/campaigns/tabs/CampaignAccounts';
 import CampaignTemplates from './pages/campaigns/tabs/CampaignTemplates';
 import CampaignLeads from './pages/campaigns/tabs/CampaignLeads';
-import CampaignOverview from './pages/campaigns/tabs/CampaignOverview';
 import CampaignSchedule from './pages/campaigns/tabs/CampaignSchedule';
 import CampaignActivity from './pages/campaigns/tabs/CampaignActivity';
 import CampaignSettings from './pages/campaigns/tabs/CampaignSettings';
+import CampaignSubsequences from './pages/campaigns/tabs/CampaignSubsequences';
 
 import SuppressionList from './pages/SuppressionList';
 
@@ -38,23 +38,27 @@ function App() {
         
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          {/* Placeholders for future routes */}
           <Route path="/campaigns" element={<CampaignList />} />
           <Route path="/campaigns/new" element={<CampaignWizard />} />
           
+          {/* Instantly.ai Styled Campaign Workspace */}
           <Route path="/campaigns/:id" element={<CampaignDetailLayout />}>
-            <Route index element={<Navigate to="overview" replace />} />
-            <Route path="overview" element={<CampaignOverview />} />
+            <Route index element={<Navigate to="analytics" replace />} />
+            <Route path="analytics" element={<CampaignAnalytics />} />
+            <Route path="editor" element={<SequenceBuilder />} />
+            <Route path="sequence" element={<Navigate to="../editor" replace />} />
             <Route path="leads" element={<CampaignLeads />} />
-            <Route path="sequence" element={<SequenceBuilder />} />
+            <Route path="subsequences" element={<CampaignSubsequences />} />
+            <Route path="settings" element={<CampaignSettings />} />
+            {/* Backward compatibility aliases */}
+            <Route path="overview" element={<Navigate to="../analytics" replace />} />
             <Route path="templates" element={<CampaignTemplates />} />
             <Route path="accounts" element={<CampaignAccounts />} />
             <Route path="schedule" element={<CampaignSchedule />} />
             <Route path="inbox" element={<UnifiedInbox />} />
-            <Route path="analytics" element={<CampaignAnalytics />} />
             <Route path="activity" element={<CampaignActivity />} />
-            <Route path="settings" element={<CampaignSettings />} />
           </Route>
+
           <Route path="/prospects" element={<ProspectList />} />
           <Route path="/email-accounts" element={<EmailAccounts />} />
           <Route path="/suppression" element={<SuppressionList />} />
@@ -65,7 +69,7 @@ function App() {
           <Route path="/templates/:id" element={<TemplateEditor />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/profile" element={<Profile />} />
-          {/* Catch-all for new nested sidebar routes */}
+          {/* Catch-all */}
           <Route path="*" element={<div className="p-4 flex flex-col items-center justify-center h-full text-gray-500"><h2 className="text-2xl font-bold mb-2">Coming Soon</h2><p>This page is part of the planned roadmap.</p></div>} />
         </Route>
       </Routes>

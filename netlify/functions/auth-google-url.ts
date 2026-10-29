@@ -1,8 +1,6 @@
 import { Handler } from '@netlify/functions';
 import { google } from 'googleapis';
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
-import prisma from '../lib/prisma';
+import { getAuthContext, unauthorizedResponse } from '../lib/auth';
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'GET') {
@@ -10,19 +8,10 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Authenticate user
-    const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies.session;
-    if (!token) return { statusCode: 401, body: 'Unauthorized' };
-    
-    const secret = process.env.SESSION_SECRET || 'fallback-secret-key';
-    const decoded = jwt.verify(token, secret) as { userId: string, email: string };
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { workspaceMembers: true }
-    });
-    if (!user) return { statusCode: 401, body: 'Unauthorized' };
+    const auth = await getAuthContext(event);
+    if (!auth) {
+      return unauthorizedResponse('Unauthorized');
+    }
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -37,27 +26,27 @@ export const handler: Handler = async (event) => {
       'https://www.googleapis.com/auth/userinfo.email',
     ];
 
-    // Pass the user's workspace ID in state so we know where to save it
-    const workspaceId = user.workspaceMembers[0].workspaceId;
-    
+    const workspaceId = auth.workspaceId;
+
     const url = oauth2Client.generateAuthUrl({
-      access_type: 'offline', // Request a refresh token
-      prompt: 'consent', // Force consent to guarantee a refresh token is returned
+      access_type: 'offline',
+      prompt: 'consent',
       scope: scopes,
       state: workspaceId,
     });
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ url }),
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
+      body: JSON.stringify({ url }),
     };
   } catch (error: any) {
     console.error('Google Auth URL Error:', error);
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Internal Server Error' }),
     };
   }

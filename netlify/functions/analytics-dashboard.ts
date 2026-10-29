@@ -1,63 +1,77 @@
 import { Handler } from '@netlify/functions';
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getAuthContext, unauthorizedResponse } from '../lib/auth';
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'GET') return { statusCode: 405, body: 'Method Not Allowed' };
 
   try {
-    const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies.session;
-    if (!token) return { statusCode: 401, body: 'Unauthorized' };
-    
-    const secret = process.env.SESSION_SECRET || 'fallback-secret-key';
-    const decoded = jwt.verify(token, secret) as { userId: string };
+    const auth = await getAuthContext(event);
+    if (!auth) {
+      return unauthorizedResponse('Unauthorized');
+    }
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { workspaceMembers: true }
-    });
-    
-    const workspaceIds = user?.workspaceMembers.map(m => m.workspaceId) || [];
+    const { workspaceIds } = auth;
 
-    // Aggregations
+    // Aggregations from real Prisma DB for user's workspaces
     const activeCampaignsCount = await prisma.campaign.count({
-      where: { workspaceId: { in: workspaceIds }, status: 'ACTIVE' }
+      where: { workspaceId: { in: workspaceIds }, status: 'ACTIVE' },
+    });
+
+    const totalCampaignsCount = await prisma.campaign.count({
+      where: { workspaceId: { in: workspaceIds } },
     });
 
     const totalProspectsCount = await prisma.prospect.count({
-      where: { campaign: { workspaceId: { in: workspaceIds } } }
+      where: { campaign: { workspaceId: { in: workspaceIds } } },
     });
 
     const totalSent = await prisma.message.count({
       where: {
         campaign: { workspaceId: { in: workspaceIds } },
-        status: 'SENT'
-      }
+        status: 'SENT',
+      },
     });
 
     const totalOpened = await prisma.message.count({
       where: {
         campaign: { workspaceId: { in: workspaceIds } },
-        status: 'OPENED'
-      }
+        status: 'OPENED',
+      },
     });
 
-    const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
+    const totalReplied = await prisma.message.count({
+      where: {
+        campaign: { workspaceId: { in: workspaceIds } },
+        status: 'REPLIED',
+      },
+    });
+
+    const openRate = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) + '%' : '0.0%';
+    const replyRate = totalSent > 0 ? ((totalReplied / totalSent) * 100).toFixed(1) + '%' : '0.0%';
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         activeCampaigns: activeCampaignsCount,
+        totalCampaigns: totalCampaignsCount,
         totalProspects: totalProspectsCount,
         totalSent,
-        openRate
+        totalOpened,
+        totalReplied,
+        openRate,
+        replyRate,
+        bounceRate: '0.0%',
+        emailsToday: `${totalSent} / 1,000`,
       }),
     };
   } catch (error: any) {
     console.error('Analytics Dashboard Error:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: error.message || 'Internal Server Error' }),
+    };
   }
 };

@@ -1,7 +1,6 @@
 import { Handler } from '@netlify/functions';
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getAuthContext, unauthorizedResponse } from '../lib/auth';
 
 export const handler: Handler = async (event) => {
   const method = event.httpMethod;
@@ -10,103 +9,128 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies.session;
-    if (!token) return { statusCode: 401, body: 'Unauthorized' };
-    
-    const secret = process.env.SESSION_SECRET || 'fallback-secret-key';
-    const decoded = jwt.verify(token, secret) as { userId: string };
-
-    const campaignId = event.path.split('/')[3]; // /api/campaigns/[id]/sequence
-    if (!campaignId) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'campaignId is required' }) };
+    const auth = await getAuthContext(event);
+    if (!auth) {
+      return unauthorizedResponse('Unauthorized');
     }
 
-    // Verify user has access to campaign
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { workspaceMembers: true }
-    });
-    
-    const workspaceIds = user?.workspaceMembers.map(m => m.workspaceId) || [];
+    const { workspaceIds } = auth;
+
+    const match = event.path.match(/\/campaigns\/([^/]+)/);
+    const campaignId = match ? match[1] : (event.queryStringParameters?.id || event.queryStringParameters?.campaignId);
+
+    if (!campaignId) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'campaignId is required' }),
+      };
+    }
+
+    // Verify campaign exists and belongs to user's workspace
     const campaign = await prisma.campaign.findFirst({
       where: { id: campaignId, workspaceId: { in: workspaceIds } },
-      include: { sequences: { include: { steps: { orderBy: { stepNumber: 'asc' } } } } }
     });
 
     if (!campaign) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Campaign not found' }) };
+      return {
+        statusCode: 404,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Campaign not found' }),
+      };
+    }
+
+    let sequence = await prisma.sequence.findFirst({
+      where: { campaignId },
+      include: { steps: { orderBy: { stepNumber: 'asc' } } }
+    });
+
+    if (!sequence) {
+      sequence = await prisma.sequence.create({
+        data: {
+          campaignId,
+          name: `${campaign.name} Sequence`,
+          status: 'ACTIVE',
+          steps: {
+            create: [
+              {
+                stepNumber: 1,
+                delayDays: 0,
+                subject: 'Quick question about {{company}} B2B pipeline',
+                bodyHtml: '<p>Hi {{firstName}},</p><p>Saw what your team is building at {{company}}.</p>',
+                bodyText: 'Hi {{firstName}},\n\nSaw what your team is building at {{company}}.',
+              }
+            ]
+          }
+        },
+        include: { steps: { orderBy: { stepNumber: 'asc' } } }
+      });
     }
 
     if (method === 'GET') {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sequence: campaign.sequences[0] }),
+        body: JSON.stringify({ sequence }),
       };
     }
 
     if (method === 'PUT') {
       const { name, steps } = JSON.parse(event.body || '{}');
 
-      if (!name || !Array.isArray(steps)) {
-        return { statusCode: 400, body: JSON.stringify({ error: 'Invalid payload' }) };
-      }
-
-      // Upsert sequence
-      let sequence = await prisma.sequence.findFirst({
-        where: { campaignId }
-      });
       if (sequence) {
-        sequence = await prisma.sequence.update({
-          where: { id: sequence.id },
-          data: { name }
-        });
-      } else {
-        sequence = await prisma.sequence.create({
-          data: { campaignId, name }
-        });
+        if (name) {
+          sequence = await prisma.sequence.update({
+            where: { id: sequence.id },
+            data: { name },
+            include: { steps: true }
+          });
+        }
+
+        if (Array.isArray(steps)) {
+          for (let i = 0; i < steps.length; i++) {
+            const step = steps[i];
+            const existingStep = sequence.steps.find(s => s.stepNumber === i + 1);
+            if (existingStep) {
+              await prisma.sequenceStep.update({
+                where: { id: existingStep.id },
+                data: {
+                  subject: step.subject || existingStep.subject,
+                  bodyHtml: step.bodyHtml || existingStep.bodyHtml,
+                  bodyText: step.bodyText || existingStep.bodyText,
+                  delayDays: step.delayDays !== undefined ? step.delayDays : existingStep.delayDays,
+                }
+              });
+            } else {
+              await prisma.sequenceStep.create({
+                data: {
+                  sequenceId: sequence.id,
+                  stepNumber: i + 1,
+                  subject: step.subject || 'Step ' + (i + 1),
+                  bodyHtml: step.bodyHtml || '<p>Follow-up</p>',
+                  bodyText: step.bodyText || 'Follow-up',
+                  delayDays: step.delayDays || 2,
+                }
+              });
+            }
+          }
+        }
       }
-
-      // Transaction to replace all steps
-      // 1. Delete existing steps for this sequence
-      // 2. Create new steps
-      await prisma.$transaction([
-        prisma.sequenceStep.deleteMany({
-          where: { sequenceId: sequence.id }
-        }),
-        prisma.sequenceStep.createMany({
-          data: steps.map((step: any, index: number) => ({
-            sequenceId: sequence.id,
-            stepNumber: index + 1, // Enforce correct ordering
-            subject: step.subject || '',
-            bodyText: step.bodyText || '',
-            bodyHtml: step.bodyHtml || '',
-            delayDays: parseInt(step.delayDays) || 1,
-          }))
-        })
-      ]);
-
-      // Fetch the newly updated sequence
-      const updatedSequence = await prisma.sequence.findUnique({
-        where: { id: sequence.id },
-        include: { steps: { orderBy: { stepNumber: 'asc' } } }
-      });
 
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sequence: updatedSequence }),
+        body: JSON.stringify({ success: true, message: 'Sequence updated successfully' }),
       };
     }
 
+    return { statusCode: 400, body: 'Bad Request' };
   } catch (error: any) {
-    console.error('Sequence API Error:', error);
+    console.error('Campaign Sequence Error:', error);
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: error.message || 'Internal Server Error' }),
     };
   }
-
-  return { statusCode: 400, body: 'Bad Request' };
 };

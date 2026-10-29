@@ -99,7 +99,7 @@ export const handler: Handler = async (event) => {
     console.error('Signup Error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal Server Error' }),
+      body: JSON.stringify({ error: error?.message || 'Internal Server Error' }),
     };
   }
 };

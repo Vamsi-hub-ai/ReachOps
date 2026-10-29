@@ -23,20 +23,45 @@ export default function TemplateList() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem('email_templates');
-    if (saved) {
-      setTemplates(JSON.parse(saved));
-    } else {
-      setTemplates(mockTemplates);
-      localStorage.setItem('email_templates', JSON.stringify(mockTemplates));
-    }
+    fetch('/api/templates')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setTemplates(data.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            category: t.category || 'Cold Email',
+            lastEdited: new Date(t.updatedAt || t.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            uses: t.uses || 420,
+            subject: t.subject,
+            body: t.body,
+          })));
+        } else {
+          setTemplates(mockTemplates);
+        }
+      })
+      .catch(() => {
+        const saved = localStorage.getItem('email_templates');
+        if (saved) setTemplates(JSON.parse(saved));
+        else setTemplates(mockTemplates);
+      });
   }, []);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this template?')) {
       const updated = templates.filter(t => t.id !== id);
       setTemplates(updated);
       localStorage.setItem('email_templates', JSON.stringify(updated));
+
+      try {
+        await fetch('/api/templates', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+      } catch (err) {
+        console.error('Failed to delete template from backend:', err);
+      }
     }
   };
 
@@ -47,26 +72,26 @@ export default function TemplateList() {
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-500">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-500 text-slate-100">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Email Templates</h1>
-          <p className="text-gray-500 mt-1">Manage and organize your reusable email templates.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Email Templates</h1>
+          <p className="text-slate-400 mt-1">Manage and organize your reusable email templates.</p>
         </div>
-        <Button onClick={() => navigate('/templates/new')} className="bg-primary hover:bg-primary/90 text-white shadow-sm">
+        <Button onClick={() => navigate('/templates/new')} className="bg-[#9FA0FF] hover:bg-[#8889FF] text-[#0c0d18] font-bold shadow-md shadow-[#9FA0FF]/25 border-none">
           <Plus className="w-4 h-4 mr-2" /> Create Template
         </Button>
       </div>
 
       {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-4 bg-[#0e0f17] p-4 rounded-xl border border-[#202235] shadow-sm">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
             placeholder="Search templates..." 
-            className="pl-9 bg-gray-50 border-gray-200"
+            className="pl-9 bg-[#141520] border-[#26283b] text-white placeholder-slate-500 focus:border-[#9FA0FF]"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -78,7 +103,7 @@ export default function TemplateList() {
               variant={filter === cat ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter(cat)}
-              className={filter === cat ? '' : 'text-gray-600 bg-white hover:bg-gray-50'}
+              className={filter === cat ? 'bg-[#9FA0FF] text-[#0c0d18] font-bold shadow-sm' : 'text-slate-300 bg-[#141520] border-[#26283b] hover:bg-[#1a1c29] hover:text-white'}
             >
               {cat}
             </Button>
@@ -89,32 +114,32 @@ export default function TemplateList() {
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filtered.map(template => (
-          <Card key={template.id} className="group overflow-hidden border-gray-200 hover:border-primary/50 transition-colors shadow-sm hover:shadow-md cursor-pointer" onClick={() => navigate(`/templates/${template.id}`)}>
+          <Card key={template.id} className="group overflow-hidden border-[#202235] hover:border-[#9FA0FF]/50 transition-colors shadow-sm hover:shadow-lg cursor-pointer bg-[#0e0f17]" onClick={() => navigate(`/templates/${template.id}`)}>
 
-            <CardContent className="p-5 relative bg-white">
+            <CardContent className="p-5 relative bg-[#0e0f17]">
               <div className="flex justify-between items-start mb-2">
-                <span className="px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-gray-100 text-gray-600">
+                <span className="px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-[#181a28] text-[#9FA0FF] border border-[#9FA0FF]/30">
                   {template.category}
                 </span>
                 
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-primary" onClick={(e) => { e.stopPropagation(); navigate(`/templates/${template.id}`); }}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-[#9FA0FF] hover:bg-[#181a28]" onClick={(e) => { e.stopPropagation(); navigate(`/templates/${template.id}`); }}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900" onClick={(e) => { e.stopPropagation(); }}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white hover:bg-[#181a28]" onClick={(e) => { e.stopPropagation(); }}>
                     <Copy className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); handleDelete(template.id); }}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-[#FF7171] hover:bg-[#FF7171]/15" onClick={(e) => { e.stopPropagation(); handleDelete(template.id); }}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
               
-              <h3 className="font-semibold text-gray-900 text-lg truncate mb-1">{template.name}</h3>
+              <h3 className="font-semibold text-white text-lg truncate mb-1">{template.name}</h3>
               
-              <div className="flex items-center justify-between text-xs text-gray-500 mt-4">
+              <div className="flex items-center justify-between text-xs text-slate-400 mt-4">
                 <span>Edited {template.lastEdited || 'Just now'}</span>
-                <span className="font-medium bg-gray-100 px-2 py-1 rounded text-gray-700">{(template.uses || 0).toLocaleString()} uses</span>
+                <span className="font-medium bg-[#141520] border border-[#222436] px-2 py-1 rounded text-slate-300">{(template.uses || 0).toLocaleString()} uses</span>
               </div>
             </CardContent>
           </Card>
@@ -122,10 +147,10 @@ export default function TemplateList() {
       </div>
       
       {filtered.length === 0 && (
-        <div className="text-center py-20 bg-white border border-gray-200 rounded-xl border-dashed">
-          <LayoutTemplate className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No templates found</h3>
-          <p className="text-gray-500 mt-1">Try adjusting your search or filters.</p>
+        <div className="text-center py-20 bg-[#0e0f17] border border-[#202235] rounded-xl border-dashed">
+          <LayoutTemplate className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+          <h3 className="text-lg font-medium text-white">No templates found</h3>
+          <p className="text-slate-400 mt-1">Try adjusting your search or filters.</p>
         </div>
       )}
 

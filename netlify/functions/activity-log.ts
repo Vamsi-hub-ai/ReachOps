@@ -1,43 +1,35 @@
 import { Handler } from '@netlify/functions';
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getAuthContext, unauthorizedResponse } from '../lib/auth';
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'GET') return { statusCode: 405, body: 'Method Not Allowed' };
 
   try {
-    const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies.session;
-    if (!token) return { statusCode: 401, body: 'Unauthorized' };
-    
-    const secret = process.env.SESSION_SECRET || 'fallback-secret-key';
-    const decoded = jwt.verify(token, secret) as { userId: string };
+    const auth = await getAuthContext(event);
+    if (!auth) {
+      return unauthorizedResponse('Unauthorized');
+    }
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { workspaceMembers: true }
-    });
-    
-    const workspaceIds = user?.workspaceMembers.map(m => m.workspaceId) || [];
+    const { workspaceIds } = auth;
 
-    // Fetch the 50 most recent messages across the workspace
+    // Fetch recent messages across the user's workspaces
     const recentMessages = await prisma.message.findMany({
       where: { campaign: { workspaceId: { in: workspaceIds } } },
-      orderBy: { sentAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 50,
       include: {
         campaign: { select: { name: true } },
-        prospect: { select: { email: true } },
-      }
+        prospect: { select: { email: true, firstName: true, lastName: true } },
+      },
     });
 
-    const formattedLog = recentMessages.map(msg => ({
+    const formattedLog = recentMessages.map((msg) => ({
       id: msg.id,
-      timestamp: msg.sentAt,
-      description: `Email ${msg.status.toLowerCase()} to ${msg.prospect.email}`,
-      campaignName: msg.campaign.name,
-      status: msg.status
+      timestamp: (msg.sentAt || msg.createdAt).toISOString(),
+      description: `Email ${msg.status.toLowerCase()} to ${msg.prospect?.email || 'prospect'}`,
+      campaignName: msg.campaign?.name || 'Outreach',
+      status: msg.status,
     }));
 
     return {
@@ -47,6 +39,10 @@ export const handler: Handler = async (event) => {
     };
   } catch (error: any) {
     console.error('Activity Log Error:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: error.message || 'Internal Server Error' }),
+    };
   }
 };

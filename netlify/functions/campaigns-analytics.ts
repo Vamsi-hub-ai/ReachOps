@@ -1,33 +1,48 @@
 import { Handler } from '@netlify/functions';
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getAuthContext, unauthorizedResponse } from '../lib/auth';
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'GET') return { statusCode: 405, body: 'Method Not Allowed' };
 
   try {
-    const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies.session;
-    if (!token) return { statusCode: 401, body: 'Unauthorized' };
-    
-    const secret = process.env.SESSION_SECRET || 'fallback-secret-key';
-    const decoded = jwt.verify(token, secret) as { userId: string };
+    const auth = await getAuthContext(event);
+    if (!auth) {
+      return unauthorizedResponse('Unauthorized');
+    }
 
-    const campaignId = event.path.split('/')[3]; // /api/campaigns/[id]/analytics
-    if (!campaignId) return { statusCode: 400, body: JSON.stringify({ error: 'campaignId required' }) };
+    const { workspaceIds } = auth;
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { workspaceMembers: true }
-    });
-    
-    const workspaceIds = user?.workspaceMembers.map(m => m.workspaceId) || [];
+    const match = event.path.match(/\/campaigns\/([^/]+)/);
+    const campaignId = match ? match[1] : (event.queryStringParameters?.id || event.queryStringParameters?.campaignId);
+
+    if (!campaignId) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'campaignId is required' }),
+      };
+    }
+
+    // Verify campaign belongs to user's workspace
     const campaign = await prisma.campaign.findFirst({
-      where: { id: campaignId, workspaceId: { in: workspaceIds } }
+      where: { id: campaignId, workspaceId: { in: workspaceIds } },
+      include: {
+        sequences: {
+          include: {
+            steps: { orderBy: { stepNumber: 'asc' } },
+          },
+        },
+      },
     });
 
-    if (!campaign) return { statusCode: 404, body: JSON.stringify({ error: 'Campaign not found' }) };
+    if (!campaign) {
+      return {
+        statusCode: 404,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Campaign not found' }),
+      };
+    }
 
     const totalEnrolled = await prisma.campaignEnrollment.count({ where: { campaignId } });
     const totalSent = await prisma.message.count({ where: { campaignId, status: 'SENT' } });
@@ -36,21 +51,65 @@ export const handler: Handler = async (event) => {
     const totalReplied = await prisma.message.count({ where: { campaignId, status: 'REPLIED' } });
     const totalBounced = await prisma.message.count({ where: { campaignId, status: 'BOUNCED' } });
 
+    // Build step metrics
+    const stepsList = campaign?.sequences?.[0]?.steps || [];
+    let formattedSteps: any[] = [];
+
+    if (stepsList.length > 0) {
+      formattedSteps = await Promise.all(
+        stepsList.map(async (step) => {
+          const stepSent = await prisma.message.count({
+            where: { sequenceStepId: step.id, status: 'SENT' },
+          });
+          const stepOpened = await prisma.message.count({
+            where: { sequenceStepId: step.id, status: 'OPENED' },
+          });
+          const stepReplied = await prisma.message.count({
+            where: { sequenceStepId: step.id, status: 'REPLIED' },
+          });
+
+          const sRate = stepSent > 0 ? ((stepReplied / stepSent) * 100).toFixed(1) + '%' : '0%';
+
+          return {
+            id: `step-${step.stepNumber}`,
+            name: `Step ${step.stepNumber}`,
+            subject: step.subject,
+            sent: stepSent,
+            opened: stepOpened,
+            replied: stepReplied,
+            replyRate: stepSent > 0 ? sRate : '-',
+            posReplyRate: '-',
+            opps: 0,
+            meetings: 0,
+            won: 0,
+          };
+        })
+      );
+    }
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        campaignName: campaign.name,
+        campaignId,
+        campaignName: campaign?.name || 'Campaign Outreach',
         enrolled: totalEnrolled,
         sent: totalSent,
         opened: totalOpened,
         clicked: totalClicked,
         replied: totalReplied,
         bounced: totalBounced,
+        openRate: totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) + '%' : '0.0%',
+        replyRate: totalSent > 0 ? ((totalReplied / totalSent) * 100).toFixed(1) + '%' : '0.0%',
+        steps: formattedSteps,
       }),
     };
   } catch (error: any) {
     console.error('Campaign Analytics Error:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: error.message || 'Internal Server Error' }),
+    };
   }
 };

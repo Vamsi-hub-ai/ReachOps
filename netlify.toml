@@ -3,9 +3,64 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[dev]
+  command = "npx vite"
+  port = 8888
+  targetPort = 5173
+
 [[redirects]]
   from = "/api/auth/google/callback"
   to = "/.netlify/functions/auth-google-callback"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/google-url"
+  to = "/.netlify/functions/auth-google-url"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns/:id/analytics"
+  to = "/.netlify/functions/campaigns-analytics"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns/:id/sequence"
+  to = "/.netlify/functions/campaigns-sequence"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns/:id/settings"
+  to = "/.netlify/functions/campaigns-settings"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns/:id/start"
+  to = "/.netlify/functions/campaigns-start"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns/:id/sync-sheet"
+  to = "/.netlify/functions/campaigns-sync-sheet"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns/:id/leads"
+  to = "/.netlify/functions/campaigns-leads"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns/:id/inbox"
+  to = "/.netlify/functions/inbox"
+  status = 200
+
+[[redirects]]
+  from = "/api/inbox"
+  to = "/.netlify/functions/inbox"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns"
+  to = "/.netlify/functions/campaigns"
   status = 200
 
 [[redirects]]

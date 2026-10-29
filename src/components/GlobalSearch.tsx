@@ -20,10 +20,11 @@ export default function GlobalSearch({ isOpen, onClose }: { isOpen: boolean, onC
   if (!isOpen) return null;
 
   const mockResults = [
-    { type: 'Campaign', name: 'Q4 Enterprise Outreach', id: '1', icon: Mail, path: '/campaigns' },
-    { type: 'Prospect', name: 'Sarah Jenkins', id: '2', icon: Users, path: '/prospects' },
-    { type: 'Template', name: 'Cold Outreach - SaaS', id: '3', icon: FileText, path: '/templates' },
-    { type: 'Settings', name: 'API Keys', id: '4', icon: Settings, path: '/settings' },
+    { type: 'Navigation', name: 'All Campaigns', id: '1', icon: Mail, path: '/campaigns' },
+    { type: 'Navigation', name: 'Prospects', id: '2', icon: Users, path: '/prospects' },
+    { type: 'Navigation', name: 'Email Accounts & Warmup', id: '3', icon: Mail, path: '/email-accounts' },
+    { type: 'Navigation', name: 'Email Templates', id: '4', icon: FileText, path: '/templates' },
+    { type: 'Navigation', name: 'Settings & Integrations', id: '5', icon: Settings, path: '/settings' },
   ];
 
   const filtered = query 

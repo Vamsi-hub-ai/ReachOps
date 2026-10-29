@@ -19,12 +19,15 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          teal: "#6DC3BB",
-          indigo: "#393D7E",
-          royal: "#5459AC",
-          pink: "#F2AEBB",
-          light: "#F7F8FC",
-          dark: "#20233F"
+          blue: "#9FA0FF",
+          teal: "#D5E8E6",
+          beige: "#FFF3E3",
+          red: "#FF7171",
+          indigo: "#9FA0FF",
+          royal: "#8789FF",
+          pink: "#FF7171",
+          light: "#FFF3E3",
+          dark: "#0F101A"
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

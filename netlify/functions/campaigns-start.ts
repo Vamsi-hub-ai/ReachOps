@@ -1,7 +1,6 @@
 import { Handler } from '@netlify/functions';
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { getAuthContext, unauthorizedResponse } from '../lib/auth';
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -9,57 +8,63 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies.session;
-    if (!token) return { statusCode: 401, body: 'Unauthorized' };
-    
-    const secret = process.env.SESSION_SECRET || 'fallback-secret-key';
-    const decoded = jwt.verify(token, secret) as { userId: string };
+    const auth = await getAuthContext(event);
+    if (!auth) {
+      return unauthorizedResponse('Unauthorized');
+    }
 
-    const campaignId = event.path.split('/')[3]; // /api/campaigns/[id]/start
+    const { workspaceIds } = auth;
+
+    const match = event.path.match(/\/campaigns\/([^/]+)/);
+    const campaignId = match ? match[1] : (event.queryStringParameters?.id || event.queryStringParameters?.campaignId);
     if (!campaignId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'campaignId is required' }) };
     }
 
-    // Verify user has access to campaign
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { workspaceMembers: true }
-    });
-    
-    const workspaceIds = user?.workspaceMembers.map(m => m.workspaceId) || [];
     const campaign = await prisma.campaign.findFirst({
-      where: { id: campaignId, workspaceId: { in: workspaceIds } }
+      where: { id: campaignId, workspaceId: { in: workspaceIds } },
     });
 
     if (!campaign) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Campaign not found' }) };
+      return {
+        statusCode: 404,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Campaign not found' }),
+      };
     }
 
-    // Update Campaign Status
+    // Toggle or start campaign
+    const newStatus = campaign.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
+
     await prisma.campaign.update({
       where: { id: campaignId },
-      data: { status: 'ACTIVE' }
+      data: { status: newStatus },
     });
 
-    // Optionally: also set all PENDING enrollments' nextSendTime to NOW so the cron picks them up immediately.
-    await prisma.campaignEnrollment.updateMany({
-      where: { campaignId, status: 'PENDING' },
-      data: { 
-        status: 'ACTIVE',
-        nextSendTime: new Date()
-      }
-    });
+    if (newStatus === 'ACTIVE') {
+      await prisma.campaignEnrollment.updateMany({
+        where: { campaignId, status: 'PENDING' },
+        data: {
+          status: 'ACTIVE',
+          nextActionAt: new Date(),
+        },
+      });
+    }
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true, message: 'Campaign started successfully' }),
+      body: JSON.stringify({
+        success: true,
+        status: newStatus,
+        message: `Campaign ${newStatus === 'ACTIVE' ? 'started' : 'paused'} successfully`,
+      }),
     };
   } catch (error: any) {
     console.error('Campaign Start Error:', error);
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: error.message || 'Internal Server Error' }),
     };
   }
