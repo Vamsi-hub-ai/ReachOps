@@ -130,17 +130,30 @@ export default function CampaignSettings() {
         if (data.timezone) setTimezone(data.timezone);
         if (data.sendingWindowStart) setFromTime(data.sendingWindowStart);
         if (data.sendingWindowEnd) setToTime(data.sendingWindowEnd);
+        if (data.selectedAccounts && Array.isArray(data.selectedAccounts) && data.selectedAccounts.length > 0) {
+          setSelectedAccounts(data.selectedAccounts);
+        }
       })
       .catch(console.error);
 
     fetch('/api/email-accounts')
       .then(res => res.ok ? res.json() : [])
       .then(data => {
-        if (Array.isArray(data)) {
-          setAvailableAccounts(data.map((a: any) => a.email));
+        if (Array.isArray(data) && data.length > 0) {
+          const emails = data.map((a: any) => a.email);
+          setAvailableAccounts(emails);
+          setSelectedAccounts(prev => prev.length === 0 ? [emails[0]] : prev);
+        } else {
+          const fallback = ['alex@reachops-demo.io', 'growth@reachops-demo.io'];
+          setAvailableAccounts(fallback);
+          setSelectedAccounts(prev => prev.length === 0 ? [fallback[0]] : prev);
         }
       })
-      .catch(console.error);
+      .catch(() => {
+        const fallback = ['alex@reachops-demo.io', 'growth@reachops-demo.io'];
+        setAvailableAccounts(fallback);
+        setSelectedAccounts(prev => prev.length === 0 ? [fallback[0]] : prev);
+      });
   }, [campaignKey]);
 
   const removeAccount = (acc: string) => {
@@ -151,7 +164,6 @@ export default function CampaignSettings() {
     if (!selectedAccounts.includes(acc)) {
       setSelectedAccounts([...selectedAccounts, acc]);
     }
-    setAccountDropdownOpen(false);
   };
 
   const toggleDay = (day: keyof typeof days) => {
@@ -248,10 +260,10 @@ export default function CampaignSettings() {
       </div>
 
       {/* 1. Accounts To Use Section */}
-      <div className="rounded-2xl bg-[#121319] border border-[#222430] overflow-hidden transition-all shadow-sm">
+      <div className={`rounded-2xl bg-[#121319] border border-[#222430] transition-all shadow-sm relative ${accountDropdownOpen ? 'overflow-visible z-30' : 'overflow-hidden'}`}>
         <div 
           onClick={() => setAccountsOpen(!accountsOpen)}
-          className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors"
+          className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors rounded-t-2xl"
         >
           <div>
             <h3 className="text-sm font-bold text-white tracking-tight">Accounts To Use</h3>
@@ -269,51 +281,89 @@ export default function CampaignSettings() {
                 onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
                 className="w-full min-h-[46px] p-2 bg-[#161724] border border-[#26283b] hover:border-[#35384e] rounded-xl flex flex-wrap items-center gap-2 cursor-pointer transition-colors"
               >
-                {selectedAccounts.map((acc) => (
-                  <span 
-                    key={acc}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1f2133] border border-[#2f324c] text-xs text-slate-200 font-medium"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span>{acc.length > 24 ? acc.slice(0, 21) + '...' : acc}</span>
-                    <button 
-                      onClick={() => removeAccount(acc)}
-                      className="text-slate-400 hover:text-rose-400 transition-colors p-0.5"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                {selectedAccounts.length === 0 ? (
+                  <span className="text-xs text-slate-500 pl-2 select-none">
+                    Select one or more sending accounts...
                   </span>
-                ))}
+                ) : (
+                  selectedAccounts.map((acc) => (
+                    <span 
+                      key={acc}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1f2133] border border-[#2f324c] text-xs text-slate-200 font-medium"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span>{acc.length > 28 ? acc.slice(0, 25) + '...' : acc}</span>
+                      <button 
+                        onClick={() => removeAccount(acc)}
+                        className="text-slate-400 hover:text-rose-400 transition-colors p-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))
+                )}
 
                 <div className="ml-auto flex items-center pr-2 text-slate-400">
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${accountDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
               </div>
 
               {accountDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setAccountDropdownOpen(false)} />
-                  <div className="absolute left-0 right-0 mt-1.5 bg-[#161724] border border-[#2b2e44] rounded-xl shadow-2xl py-1 z-50 text-xs">
-                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Available Sending Inboxes
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#161724] border border-[#2b2e44] rounded-xl shadow-2xl py-2 z-50 text-xs max-h-64 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-[#222436] pb-2 mb-1">
+                      <span>Available Sending Inboxes ({availableAccounts.length})</span>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (selectedAccounts.length === availableAccounts.length) {
+                            setSelectedAccounts([]);
+                          } else {
+                            setSelectedAccounts([...availableAccounts]);
+                          }
+                        }}
+                        className="text-[#9FA0FF] hover:underline normal-case font-semibold text-[11px] cursor-pointer"
+                      >
+                        {selectedAccounts.length === availableAccounts.length ? 'Deselect All' : 'Select All'}
+                      </button>
                     </div>
                     {availableAccounts.length === 0 ? (
                       <div className="px-4 py-3 text-center text-slate-400">
                         No connected email accounts found.
                       </div>
                     ) : (
-                      availableAccounts.map(acc => (
-                        <button
-                          key={acc}
-                          onClick={() => addAccount(acc)}
-                          className="w-full text-left px-3 py-2 text-slate-300 hover:bg-[#202235] hover:text-white flex items-center justify-between"
-                        >
-                          <span>{acc}</span>
-                          {selectedAccounts.includes(acc) && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#9FA0FF]" />
-                          )}
-                        </button>
-                      ))
+                      availableAccounts.map(acc => {
+                        const isSelected = selectedAccounts.includes(acc);
+                        return (
+                          <div
+                            key={acc}
+                            onClick={() => {
+                              if (isSelected) {
+                                removeAccount(acc);
+                              } else {
+                                addAccount(acc);
+                              }
+                            }}
+                            className={`w-full text-left px-3.5 py-2.5 hover:bg-[#202235] cursor-pointer flex items-center justify-between transition-colors ${
+                              isSelected ? 'bg-[#1b1d2e] text-white font-medium' : 'text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                                isSelected ? 'bg-[#9FA0FF] border-[#9FA0FF]' : 'border-slate-500 bg-[#12131a]'
+                              }`}>
+                                {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#0c0d18]" />}
+                              </div>
+                              <span className="font-mono text-xs truncate">{acc}</span>
+                            </div>
+                            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold shrink-0 ml-2">
+                              Connected
+                            </span>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </>

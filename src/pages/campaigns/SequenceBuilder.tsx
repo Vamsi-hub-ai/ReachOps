@@ -198,6 +198,7 @@ export default function SequenceBuilder() {
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const toolbarContainerRef = useRef<HTMLDivElement>(null);
+  const canvasScrollRef = useRef<HTMLDivElement>(null);
 
   // Close all popovers on outside click
   useEffect(() => {
@@ -338,6 +339,15 @@ export default function SequenceBuilder() {
     setSteps(nextSteps);
     setActiveStepId(newStep.id);
     saveSequenceToBackend(nextSteps);
+
+    setTimeout(() => {
+      if (canvasScrollRef.current) {
+        canvasScrollRef.current.scrollTo({
+          top: canvasScrollRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
   };
 
   const removeStep = (stepId: string) => {
@@ -570,13 +580,16 @@ export default function SequenceBuilder() {
   const activeStep = steps.find(s => s.id === activeStepId) || steps[0];
 
   return (
-    <div className="relative min-h-[calc(100vh-140px)] pb-48 text-slate-100 flex justify-center select-none bg-[#0a0c10] w-full">
+    <div className="relative flex-1 flex h-full w-full overflow-hidden bg-[#0a0c10] text-slate-100 select-none">
       
-      {/* Main Canvas Area */}
-      <div className="flex-1 flex flex-col items-center w-full px-4 transition-all duration-300">
+      {/* Main Canvas Area - Scrollable with mouse wheel and trackpad */}
+      <div 
+        ref={canvasScrollRef}
+        className="flex-1 overflow-y-auto h-full flex flex-col items-center w-full px-4 pt-4 pb-56 transition-all duration-300 scroll-smooth"
+      >
         
         {/* Top Floating Save / Status indicator */}
-        <div className="w-full max-w-4xl flex items-center justify-between pb-3 mb-2 border-b border-[#181a26]">
+        <div className="w-full max-w-4xl flex items-center justify-between pb-3 mb-2 border-b border-[#181a26] flex-shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold text-white">
               {steps.length} {steps.length === 1 ? 'Step' : 'Steps'} in Sequence
@@ -594,6 +607,17 @@ export default function SequenceBuilder() {
                 <Check className="w-3.5 h-3.5" /> All changes saved
               </span>
             )}
+
+            {/* Quick Add Step button at top */}
+            <button
+              onClick={addStep}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141724] hover:bg-[#1d2134] border border-[#262a40] hover:border-[#0080FF] text-white text-xs font-semibold transition-all shadow-sm cursor-pointer active:scale-95"
+              title="Add a new step to this email sequence"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#0080FF]" />
+              <span>Add Step</span>
+            </button>
+
             <button
               onClick={() => saveSequenceToBackend()}
               disabled={isSaving}
@@ -796,16 +820,17 @@ export default function SequenceBuilder() {
             );
           })}
 
-          {/* Centered Add Step '+' Button */}
-          <div className="flex flex-col items-center pt-5">
+          {/* Centered Add Step Button */}
+          <div className="flex flex-col items-center pt-6 pb-12">
             <div className="w-px h-6 bg-[#25283a]" />
             
             <button
               onClick={addStep}
-              className="w-8 h-8 rounded-lg bg-[#0d0f17] hover:bg-[#161926] border border-[#23273c] hover:border-[#0080FF] flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer mt-1"
+              className="px-5 py-2.5 rounded-xl bg-[#0d0f17] hover:bg-[#161926] border border-[#23273c] hover:border-[#0080FF] flex items-center gap-2 text-slate-300 hover:text-white transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer mt-1 font-semibold text-xs"
               title="Add Next Email Step"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 text-[#0080FF]" />
+              <span>Add Step</span>
             </button>
           </div>
 
@@ -815,7 +840,7 @@ export default function SequenceBuilder() {
 
       {/* Image 1: Right-Hand AI Assistant Sidebar ("How can I help?") */}
       {aiSidebarOpen && (
-        <div className="w-80 md:w-96 border-l border-[#1e2232] bg-[#0c0e15] flex flex-col justify-between h-[calc(100vh-140px)] sticky top-0 z-30 animate-in slide-in-from-right-4 duration-300">
+        <div className="w-80 md:w-96 border-l border-[#1e2232] bg-[#0c0e15] flex flex-col justify-between h-full flex-shrink-0 z-30 animate-in slide-in-from-right-4 duration-300">
           
           {/* Top Header & Actions */}
           <div className="p-5 flex-1 overflow-y-auto">

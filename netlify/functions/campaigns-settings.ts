@@ -75,6 +75,7 @@ export const handler: Handler = async (event) => {
         stopOnReply: customSettings.stopOnReply ?? true,
         openTracking: customSettings.openTracking ?? true,
         linkTracking: customSettings.linkTracking ?? false,
+        selectedAccounts: customSettings.selectedAccounts || [],
       };
 
       return {
