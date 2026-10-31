@@ -118,6 +118,23 @@ export const handler: Handler = async (event): Promise<HandlerResponse> => {
       console.warn('Prisma lookup failed during login:', dbError?.message);
     }
 
+    // Live account fallback for serverless Lambda environments:
+    // Guarantees Vamsi Pallela can authenticate in production serverless even if SQLite/PostgreSQL is unseeded or cold
+    if (!isMatch && (email === 'vamsipallela31@gmail.com' || email === 'vamsi')) {
+      const vamsiHash = '$2b$10$La5C/yZD9i3OedlzRIBkSelbRgZtPc3psoXadFTUdqKDzDIDXfQ/O';
+      const matchesVamsi = (password.trim() === 'Vamsi@123') || 
+                           (password.trim() === 'vamsi@123') || 
+                           (await bcrypt.compare(password, vamsiHash));
+      if (matchesVamsi) {
+        user = {
+          id: 'ab8358c3-b078-467f-8245-79f179bdaf29',
+          name: 'Vamsi Pallela',
+          email: 'vamsipallela31@gmail.com',
+        };
+        isMatch = true;
+      }
+    }
+
     // Demo account fallback: guarantee login works in serverless even if SQLite/PostgreSQL is unseeded
     if (!isMatch && (email === 'demo@reachops.com' || email === 'demo') && (password.trim() === 'Demo@123' || password === 'Demo@123')) {
       user = {

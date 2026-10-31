@@ -84,6 +84,23 @@ export async function getAuthContext(event: any): Promise<AuthContext | null> {
       console.warn('Database query during getAuthContext failed:', dbErr?.message);
     }
 
+    // Live Account (vamsipallela31@gmail.com) resilient fallback for serverless
+    if (!user && (decoded.userId === 'ab8358c3-b078-467f-8245-79f179bdaf29' || decoded.email === 'vamsipallela31@gmail.com')) {
+      return {
+        userId: 'ab8358c3-b078-467f-8245-79f179bdaf29',
+        user: {
+          id: 'ab8358c3-b078-467f-8245-79f179bdaf29',
+          email: 'vamsipallela31@gmail.com',
+          name: 'Vamsi Pallela',
+          avatar: null,
+        },
+        workspaceId: '1744410b-c21e-4f48-90c6-0d188cd463dc',
+        workspaceIds: ['1744410b-c21e-4f48-90c6-0d188cd463dc'],
+        workspaceName: 'Personal Workspace',
+        isDemo: false,
+      };
+    }
+
     // Demo fallback for resilient deployment on serverless
     if (!user && (decoded.userId === 'demo-user-id' || decoded.email === 'demo@reachops.com')) {
       return {

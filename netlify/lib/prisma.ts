@@ -18,10 +18,18 @@ if (isServerless) {
     if (!fs.existsSync(tmpDbPath)) {
       const candidates = [
         path.resolve(process.cwd(), 'prisma', 'dev.db'),
+        path.resolve(process.cwd(), 'dev.db'),
         path.resolve(__dirname, '..', 'prisma', 'dev.db'),
+        path.resolve(__dirname, '..', 'dev.db'),
         path.resolve(__dirname, 'prisma', 'dev.db'),
-        '/var/task/prisma/dev.db'
-      ];
+        path.resolve(__dirname, 'dev.db'),
+        path.resolve(__dirname, '..', '..', 'prisma', 'dev.db'),
+        path.resolve(__dirname, '..', '..', 'dev.db'),
+        '/var/task/prisma/dev.db',
+        '/var/task/dev.db',
+        process.env.LAMBDA_TASK_ROOT ? path.join(process.env.LAMBDA_TASK_ROOT, 'prisma', 'dev.db') : '',
+        process.env.LAMBDA_TASK_ROOT ? path.join(process.env.LAMBDA_TASK_ROOT, 'dev.db') : '',
+      ].filter(Boolean);
       for (const candidate of candidates) {
         if (fs.existsSync(candidate)) {
           try {

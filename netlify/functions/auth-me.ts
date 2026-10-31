@@ -33,6 +33,34 @@ export const handler: Handler = async (event) => {
       console.warn('Database query during auth-me failed:', dbErr?.message);
     }
 
+    if (!user && (auth.userId === 'ab8358c3-b078-467f-8245-79f179bdaf29' || auth.user?.email === 'vamsipallela31@gmail.com')) {
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: 'ab8358c3-b078-467f-8245-79f179bdaf29',
+          name: 'Vamsi Pallela',
+          email: 'vamsipallela31@gmail.com',
+          avatar: null,
+          isDemo: false,
+          workspaceName: 'Personal Workspace',
+          workspaceMembers: [
+            {
+              id: 'c381f3cd-bd0f-4c94-8b22-05acc161304a',
+              workspaceId: '1744410b-c21e-4f48-90c6-0d188cd463dc',
+              userId: 'ab8358c3-b078-467f-8245-79f179bdaf29',
+              role: 'OWNER',
+              workspace: {
+                id: '1744410b-c21e-4f48-90c6-0d188cd463dc',
+                name: 'Personal Workspace',
+                ownerId: 'ab8358c3-b078-467f-8245-79f179bdaf29',
+              },
+            },
+          ],
+        }),
+      };
+    }
+
     if (!user && (auth.isDemo || auth.userId === 'demo-user-id')) {
       return {
         statusCode: 200,
