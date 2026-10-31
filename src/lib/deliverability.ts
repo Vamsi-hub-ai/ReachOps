@@ -81,14 +81,15 @@ const SPAM_TRIGGER_WORDS = [
  */
 export function resolveSpintax(text: string): string {
   if (!text) return '';
-  const spintaxRegex = /\{([^{}]+)\}/g;
+  // Only match true spintax patterns containing a pipe: {option1|option2}
+  const spintaxRegex = /\{([^{}]*\|[^{}]*)\}/g;
   let resolved = text;
   
   while (spintaxRegex.test(resolved)) {
     resolved = resolved.replace(spintaxRegex, (_, options) => {
       const choices = options.split('|');
       const chosen = choices[Math.floor(Math.random() * choices.length)];
-      return chosen ? chosen.trim() : '';
+      return chosen !== undefined ? chosen.trim() : '';
     });
   }
   return resolved;

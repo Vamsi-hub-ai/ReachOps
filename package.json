@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "seed:demo": "node scripts/seed-demo-workspace.cjs",
     "provision:private": "node scripts/provision-private-account.cjs",
-    "test": "jiti tests/auth-security.test.ts && jiti tests/account-isolation.test.ts && jiti tests/google-sheets-master.test.ts"
+    "test": "jiti tests/auth-security.test.ts && jiti tests/account-isolation.test.ts && jiti tests/google-sheets-master.test.ts && jiti tests/test-send-endpoint.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

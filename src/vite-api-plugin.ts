@@ -40,6 +40,8 @@ export function netlifyFunctionsDevPlugin(): Plugin {
             funcName = 'campaigns-analytics';
           } else if (pathname.match(/^\/api\/campaigns\/[^/]+\/sequence$/)) {
             funcName = 'campaigns-sequence';
+          } else if (pathname.match(/^\/api\/campaigns\/[^/]+\/test-send$/) || pathname === '/api/campaigns-test-send') {
+            funcName = 'campaigns-test-send';
           } else if (pathname.match(/^\/api\/campaigns\/[^/]+\/settings$/)) {
             funcName = 'campaigns-settings';
           } else if (pathname.match(/^\/api\/campaigns\/[^/]+\/start$/)) {

@@ -15,23 +15,27 @@ interface ProspectData {
 
 export function replaceVariables(text: string, prospect: ProspectData, senderName?: string): string {
   if (!text) return '';
-  
-  // First resolve spintax variations e.g. {Hi|Hello|Hey}
-  let resolved = resolveSpintax(text);
 
   const firstName = prospect.firstName || 'there';
   const lastName = prospect.lastName || '';
   const company = prospect.company || 'your company';
   const email = prospect.email || '';
+  const jobTitle = prospect.jobTitle || '';
+  const sName = senderName || 'Alex Rivera';
   const signature = senderName ? `Best regards,\n${senderName}` : 'Best regards,\nThe Team';
 
   // Support both standard {{var}} and Instantly [⚡ Variable] formats
-  resolved = resolved
+  let resolved = text
     .replace(/\{\{email\}\}|\[⚡\s*Email\]/gi, email)
     .replace(/\{\{firstName\}\}|\[⚡\s*First Name\]|\[⚡\s*firstName\]/gi, firstName)
     .replace(/\{\{lastName\}\}|\[⚡\s*Last Name\]|\[⚡\s*lastName\]/gi, lastName)
-    .replace(/\{\{company\}\}|\[⚡\s*Company Name\]|\[⚡\s*company\]/gi, company)
+    .replace(/\{\{company\}\}|\{\{companyName\}\}|\[⚡\s*Company Name\]|\[⚡\s*company\]/gi, company)
+    .replace(/\{\{jobTitle\}\}|\[⚡\s*Job Title\]|\[⚡\s*jobTitle\]/gi, jobTitle)
+    .replace(/\{\{senderName\}\}|\[⚡\s*Sender Name\]/gi, sName)
     .replace(/\{\{accountSignature\}\}|\[⚡\s*Account Signature\]|\[⚡\s*signature\]/gi, signature);
+
+  // Next resolve spintax variations e.g. {Hi|Hello|Hey}
+  resolved = resolveSpintax(resolved);
 
   return resolved;
 }

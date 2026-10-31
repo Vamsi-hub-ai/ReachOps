@@ -33,6 +33,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/campaigns/:id/test-send"
+  to = "/.netlify/functions/campaigns-test-send"
+  status = 200
+
+[[redirects]]
+  from = "/api/campaigns-test-send"
+  to = "/.netlify/functions/campaigns-test-send"
+  status = 200
+
+[[redirects]]
   from = "/api/campaigns/:id/settings"
   to = "/.netlify/functions/campaigns-settings"
   status = 200
