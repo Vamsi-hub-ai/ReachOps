@@ -297,13 +297,14 @@ export default function SuppressionList() {
                 <select
                   value={ruleReason}
                   onChange={(e) => setRuleReason(e.target.value)}
-                  className="w-full bg-[#171717] border border-white/[0.09] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 [color-scheme:dark]"
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full bg-[#171717] border border-white/[0.09] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 [&>option]:bg-[#171717] [&>option]:text-white cursor-pointer"
                 >
-                  <option value="Direct Competitor">Direct Competitor</option>
-                  <option value="Unsubscribed (DNC)">Unsubscribed (DNC)</option>
-                  <option value="Hard Bounce Risk">Hard Bounce Risk</option>
-                  <option value="Legal Compliance">Legal Compliance</option>
-                  <option value="Internal Company Domain">Internal Company Domain</option>
+                  <option value="Direct Competitor" className="bg-[#171717] text-white">Direct Competitor</option>
+                  <option value="Unsubscribed (DNC)" className="bg-[#171717] text-white">Unsubscribed (DNC)</option>
+                  <option value="Hard Bounce Risk" className="bg-[#171717] text-white">Hard Bounce Risk</option>
+                  <option value="Legal Compliance" className="bg-[#171717] text-white">Legal Compliance</option>
+                  <option value="Internal Company Domain" className="bg-[#171717] text-white">Internal Company Domain</option>
                 </select>
               </div>
 

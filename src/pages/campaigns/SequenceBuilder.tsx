@@ -3,16 +3,11 @@ import { useParams } from 'react-router-dom';
 import { 
   Plus, Check, Sparkles, Eye, Code, 
   Smartphone, Monitor, ChevronDown, X, Save, Trash2,
-  Bold, Italic, Underline, Strikethrough,
-  AlignLeft, AlignCenter, AlignRight,
-  Heading1, Heading2, Heading3, Quote, List, ListOrdered, Type,
-  Link2, Smile, Clock,
-  ShieldCheck, AlertTriangle, RefreshCw, Send,
-  Wand2, FileText, CheckCircle2, MessageSquareText,
-  Mail, CornerDownRight, ExternalLink
+  Clock, ShieldCheck, Send, Wand2, FileText, CheckCircle2, Mail
 } from 'lucide-react';
 import { analyzeEmailDeliverability } from '@/lib/deliverability';
 import EmailTestLabModal, { type EmailStepData } from '@/components/campaigns/EmailTestLabModal';
+import RichEmailBodyEditor from '@/components/campaigns/RichEmailBodyEditor';
 
 interface EmailVariant {
   id: string;
@@ -38,7 +33,7 @@ interface EmailStep {
 interface AiChatMessage {
   role: 'user' | 'assistant';
   content: string;
-  actionType?: 'apply_sequence' | 'insert_spintax';
+  actionType?: 'apply_sequence' | 'insert_spintax' | 'polish_active_step' | 'custom_generated_copy';
   payload?: any;
 }
 
@@ -52,47 +47,6 @@ const DYNAMIC_VARIABLES = [
   { label: 'Sender Signature', tag: '{{accountSignature}}' },
 ];
 
-const EMOJI_CATEGORIES = [
-  {
-    id: 'outreach',
-    name: '🔥 Outreach',
-    emojis: ['👋', '🚀', '💡', '🔥', '📈', '🤝', '🎯', '✨', '☕', '⚡', '📊', '📩', '💼', '💰', '📞', '🗓️'],
-  },
-  {
-    id: 'faces',
-    name: '😊 Faces',
-    emojis: ['😀', '😊', '😉', '🤩', '🙌', '👍', '👏', '🙏', '😎', '💡', '🤝', '👀', '💪', '🎉', '✌️', '🌟'],
-  },
-  {
-    id: 'growth',
-    name: '📈 Growth',
-    emojis: ['📈', '🚀', '⭐', '🎯', '💡', '🔥', '⚡', '✅', '📌', '🔗', '✉️', '📬', '📊', '💼', '🏢', '💻'],
-  },
-  {
-    id: 'symbols',
-    name: '🎯 Symbols',
-    emojis: ['🎯', '⭐', '🔥', '✨', '💎', '🏆', '🔔', '📢', '🔑', '🏷️', '✅', '❗', '❓', '➡️', '🚀', '💯'],
-  },
-];
-
-const FONT_SIZES = [
-  { label: 'Small (12px)', size: '12px', preview: 'text-xs' },
-  { label: 'Normal (14px)', size: '14px', preview: 'text-sm' },
-  { label: 'Medium (16px)', size: '16px', preview: 'text-base' },
-  { label: 'Large (18px)', size: '18px', preview: 'text-lg' },
-  { label: 'Title (22px)', size: '22px', preview: 'text-xl font-bold' },
-];
-
-const PARAGRAPH_STYLES = [
-  { label: '¶ Normal Text', tag: 'p', desc: 'Standard paragraph' },
-  { label: 'H1 Large Heading', tag: 'h1', desc: 'Main section header' },
-  { label: 'H2 Subheading', tag: 'h2', desc: 'Secondary headline' },
-  { label: 'H3 Section Title', tag: 'h3', desc: 'Sub-section label' },
-  { label: '❝ Blockquote', tag: 'blockquote', desc: 'Highlighted testimonial' },
-  { label: '• Bulleted List', tag: 'ul', desc: 'Unordered bullet items' },
-  { label: '1. Numbered List', tag: 'ol', desc: 'Numbered sequence list' },
-];
-
 export default function SequenceBuilder() {
   const { id } = useParams<{ id: string }>();
   const campaignKey = id || 'demo-camp-vp-execs';
@@ -102,7 +56,7 @@ export default function SequenceBuilder() {
       id: 'step-1',
       stepNumber: 1,
       subject: 'Scaling {{companyName}} outbound pipeline without spam filters',
-      body: 'Hi {{firstName}},\n\nSaw what your team is building at {{companyName}}. Reaching out as we help B2B revenue leaders eliminate spam folder landing and scale authentic cold outreach.\n\nAre you free for a brief 10-minute chat this Thursday?\n\n{{accountSignature}}',
+      body: '<p>Hi {{firstName}},</p><p>Saw what your team is building at {{companyName}}. Reaching out as we help B2B revenue leaders eliminate spam folder landing and scale authentic cold outreach.</p><p>Are you free for a brief 10-minute chat this Thursday?</p><p>{{accountSignature}}</p>',
       waitValue: 1,
       waitUnit: 'Days',
       waitDays: 1,
@@ -113,7 +67,7 @@ export default function SequenceBuilder() {
           id: 'v-1-a',
           name: 'Variant A',
           subject: 'Scaling {{companyName}} outbound pipeline without spam filters',
-          body: 'Hi {{firstName}},\n\nSaw what your team is building at {{companyName}}. Reaching out as we help B2B revenue leaders eliminate spam folder landing and scale authentic cold outreach.\n\nAre you free for a brief 10-minute chat this Thursday?\n\n{{accountSignature}}',
+          body: '<p>Hi {{firstName}},</p><p>Saw what your team is building at {{companyName}}. Reaching out as we help B2B revenue leaders eliminate spam folder landing and scale authentic cold outreach.</p><p>Are you free for a brief 10-minute chat this Thursday?</p><p>{{accountSignature}}</p>',
           active: true,
         }
       ]
@@ -122,7 +76,7 @@ export default function SequenceBuilder() {
       id: 'step-2',
       stepNumber: 2,
       subject: '',
-      body: 'Hi {{firstName}},\n\nFollowing up on my previous note. We recently helped a similar B2B team lift their mailbox deliverability from 62% to 98% with ReachOps automated warmup and sender rotation.\n\nWorth a quick look?\n\nBest,\n{{senderName}}',
+      body: '<p>Hi {{firstName}},</p><p>Following up on my previous note. We recently helped a similar B2B team lift their mailbox deliverability from 62% to 98% with ReachOps automated warmup and sender rotation.</p><p>Worth a quick look?</p><p>Best,<br/>{{senderName}}</p>',
       waitValue: 2,
       waitUnit: 'Days',
       waitDays: 2,
@@ -133,7 +87,7 @@ export default function SequenceBuilder() {
           id: 'v-2-a',
           name: 'Variant A',
           subject: '',
-          body: 'Hi {{firstName}},\n\nFollowing up on my previous note. We recently helped a similar B2B team lift their mailbox deliverability from 62% to 98% with ReachOps automated warmup and sender rotation.\n\nWorth a quick look?\n\nBest,\n{{senderName}}',
+          body: '<p>Hi {{firstName}},</p><p>Following up on my previous note. We recently helped a similar B2B team lift their mailbox deliverability from 62% to 98% with ReachOps automated warmup and sender rotation.</p><p>Worth a quick look?</p><p>Best,<br/>{{senderName}}</p>',
           active: true,
         }
       ]
@@ -145,22 +99,14 @@ export default function SequenceBuilder() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // View modes
+  // View mode
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   
   // Per-step HTML Mode toggles
   const [stepHtmlMode, setStepHtmlMode] = useState<Record<string, boolean>>({});
-  // Per-step in-card visual render toggle
-  const [stepLivePreview, setStepLivePreview] = useState<Record<string, boolean>>({});
 
-  // Toolbar Dropdown Toggles per step
-  const [activeDropdown, setActiveDropdown] = useState<{
-    stepId: string;
-    type: 'fontSize' | 'paragraph' | 'align' | 'emoji' | 'variables' | 'subjectVariables';
-  } | null>(null);
-
-  // Emoji category filter
-  const [activeEmojiCategory, setActiveEmojiCategory] = useState<string>('outreach');
+  // Subject line variable dropdown
+  const [showSubjectVarStepId, setShowSubjectVarStepId] = useState<string | null>(null);
 
   // Link Insertion Modal
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -188,12 +134,11 @@ export default function SequenceBuilder() {
   const [showSpamAuditModal, setShowSpamAuditModal] = useState(false);
 
   const canvasScrollRef = useRef<HTMLDivElement>(null);
-  const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   // Close dropdowns on outside click
   useEffect(() => {
     const handleGlobalClick = () => {
-      setActiveDropdown(null);
+      setShowSubjectVarStepId(null);
       setActiveWaitDropdownStepId(null);
     };
     window.addEventListener('click', handleGlobalClick);
@@ -208,6 +153,7 @@ export default function SequenceBuilder() {
         if (data && data.sequence && Array.isArray(data.sequence.steps) && data.sequence.steps.length > 0) {
           const loadedSteps: EmailStep[] = data.sequence.steps.map((s: any, idx: number) => {
             const rawBody = s.bodyHtml || s.bodyText || '';
+            const formattedBody = rawBody.includes('<') ? rawBody : `<p>${rawBody.replace(/\n/g, '<br/>')}</p>`;
             
             let waitUnit: 'Days' | 'Hours' | 'Minutes' = 'Days';
             let waitValue = s.delayDays || (idx === 0 ? 0 : 2);
@@ -223,7 +169,7 @@ export default function SequenceBuilder() {
               id: s.id || `step-${s.stepNumber || idx + 1}`,
               stepNumber: s.stepNumber || idx + 1,
               subject: s.subject || '',
-              body: rawBody || '',
+              body: formattedBody,
               waitValue,
               waitUnit,
               waitDays: s.delayDays || (idx === 0 ? 0 : 2),
@@ -234,7 +180,7 @@ export default function SequenceBuilder() {
                   id: `v-${s.id || idx}-a`,
                   name: 'Variant A',
                   subject: s.subject || '',
-                  body: rawBody || '',
+                  body: formattedBody,
                   active: true,
                 }
               ]
@@ -267,9 +213,7 @@ export default function SequenceBuilder() {
               delayHours: isHours ? (s.waitValue || 0) : 0,
               delayMinutes: isMinutes ? (s.waitValue || 0) : 0,
               subject: s.subject,
-              bodyHtml: s.body.includes('<p>') || s.body.includes('<br') || s.body.includes('<div')
-                ? s.body
-                : `<p>${s.body.replace(/\n/g, '<br/>')}</p>`,
+              bodyHtml: s.body,
               bodyText: s.body.replace(/<[^>]+>/g, ''),
             };
           })
@@ -289,7 +233,10 @@ export default function SequenceBuilder() {
       if (s.id !== stepId) return s;
       const updatedVariants = [...s.variants];
       if (updatedVariants[s.activeVariantIndex]) {
-        updatedVariants[s.activeVariantIndex].subject = newSubject;
+        updatedVariants[s.activeVariantIndex] = {
+          ...updatedVariants[s.activeVariantIndex],
+          subject: newSubject
+        };
       }
       return {
         ...s,
@@ -304,7 +251,10 @@ export default function SequenceBuilder() {
       if (s.id !== stepId) return s;
       const updatedVariants = [...s.variants];
       if (updatedVariants[s.activeVariantIndex]) {
-        updatedVariants[s.activeVariantIndex].body = newBody;
+        updatedVariants[s.activeVariantIndex] = {
+          ...updatedVariants[s.activeVariantIndex],
+          body: newBody
+        };
       }
       return {
         ...s,
@@ -332,11 +282,12 @@ export default function SequenceBuilder() {
 
   const addStep = () => {
     const newStepNum = steps.length + 1;
+    const defaultBody = '<p>Hi {{firstName}},</p><p>Circling back on this as we want to make sure your outbound accounts maintain high reputation.</p><p>Best,<br/>{{senderName}}</p>';
     const newStep: EmailStep = {
       id: `step-${Date.now()}`,
       stepNumber: newStepNum,
       subject: '',
-      body: 'Hi {{firstName}},\n\nCircling back on this as we want to make sure your outbound accounts maintain high reputation.\n\nBest,\n{{senderName}}',
+      body: defaultBody,
       waitValue: 3,
       waitUnit: 'Days',
       waitDays: 3,
@@ -347,7 +298,7 @@ export default function SequenceBuilder() {
           id: `v-${Date.now()}-a`,
           name: 'Variant A',
           subject: '',
-          body: 'Hi {{firstName}},\n\nCircling back on this as we want to make sure your outbound accounts maintain high reputation.\n\nBest,\n{{senderName}}',
+          body: defaultBody,
           active: true
         }
       ]
@@ -379,12 +330,13 @@ export default function SequenceBuilder() {
   const addVariant = (stepId: string) => {
     setSteps(prev => prev.map(s => {
       if (s.id !== stepId) return s;
+      if (s.variants.length >= 4) return s;
       const nextLetter = String.fromCharCode(65 + s.variants.length);
       const newVariant: EmailVariant = {
         id: `v-${Date.now()}-${nextLetter.toLowerCase()}`,
         name: `Variant ${nextLetter}`,
         subject: s.subject ? `${s.subject} (v${nextLetter})` : '',
-        body: s.body,
+        body: s.body || '',
         active: true
       };
       const updatedVariants = [...s.variants, newVariant];
@@ -402,11 +354,12 @@ export default function SequenceBuilder() {
     setSteps(prev => prev.map(s => {
       if (s.id !== stepId) return s;
       const targetVar = s.variants[variantIndex];
+      if (!targetVar) return s;
       return {
         ...s,
         activeVariantIndex: variantIndex,
-        subject: targetVar?.subject ?? s.subject,
-        body: targetVar?.body ?? s.body
+        subject: targetVar.subject,
+        body: targetVar.body
       };
     }));
   };
@@ -415,7 +368,7 @@ export default function SequenceBuilder() {
     setSteps(prev => prev.map(s => {
       if (s.id !== stepId || s.variants.length <= 1) return s;
       const updatedVariants = s.variants.filter((_, idx) => idx !== variantIndex);
-      const newActiveIdx = Math.max(0, variantIndex - 1);
+      const newActiveIdx = Math.min(updatedVariants.length - 1, Math.max(0, variantIndex - 1));
       return {
         ...s,
         variants: updatedVariants,
@@ -426,124 +379,30 @@ export default function SequenceBuilder() {
     }));
   };
 
-  // Selection-aware text formatting helper
-  const applyTextWrap = (stepId: string, prefix: string, suffix: string, defaultText = 'highlighted text') => {
-    const el = textareaRefs.current[stepId];
+  // Insert variable in subject
+  const insertSubjectVariable = (stepId: string, tag: string) => {
     const step = steps.find(s => s.id === stepId);
     if (!step) return;
-
-    if (el) {
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      const text = step.body;
-      const selected = text.substring(start, end) || defaultText;
-      const replacement = `${prefix}${selected}${suffix}`;
-      const newBody = text.substring(0, start) + replacement + text.substring(end);
-      updateStepBody(stepId, newBody);
-
-      setTimeout(() => {
-        el.focus();
-        el.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
-      }, 50);
-    } else {
-      updateStepBody(stepId, `${step.body}\n${prefix}${defaultText}${suffix}`);
-    }
-  };
-
-  // Apply Paragraph Style
-  const applyParagraphStyle = (stepId: string, tag: string) => {
-    setActiveDropdown(null);
-    if (tag === 'h1') {
-      applyTextWrap(stepId, '<h1 style="font-size: 20px; font-weight: bold; margin: 8px 0; color: #ffffff;">', '</h1>', 'Heading 1');
-    } else if (tag === 'h2') {
-      applyTextWrap(stepId, '<h2 style="font-size: 17px; font-weight: bold; margin: 6px 0; color: #ffffff;">', '</h2>', 'Subheading 2');
-    } else if (tag === 'h3') {
-      applyTextWrap(stepId, '<h3 style="font-size: 15px; font-weight: 600; margin: 4px 0; color: #e2e8f0;">', '</h3>', 'Section Title');
-    } else if (tag === 'blockquote') {
-      applyTextWrap(stepId, '<blockquote style="border-left: 3px solid #10b981; padding-left: 10px; margin: 8px 0; color: #94a3b8; font-style: italic;">', '</blockquote>', 'Key quote or social proof');
-    } else if (tag === 'ul') {
-      applyTextWrap(stepId, '<ul style="padding-left: 20px; margin: 8px 0;">\n  <li>', '</li>\n  <li>Second key point</li>\n</ul>', 'First key point');
-    } else if (tag === 'ol') {
-      applyTextWrap(stepId, '<ol style="padding-left: 20px; margin: 8px 0;">\n  <li>', '</li>\n  <li>Next action item</li>\n</ol>', 'Step one');
-    } else {
-      applyTextWrap(stepId, '<p style="margin: 8px 0;">', '</p>', 'Paragraph text');
-    }
-  };
-
-  // Apply Font Size
-  const applyFontSize = (stepId: string, size: string) => {
-    setActiveDropdown(null);
-    applyTextWrap(stepId, `<span style="font-size: ${size};">`, '</span>', `Sample ${size} text`);
-  };
-
-  // Apply Text Alignment
-  const applyTextAlign = (stepId: string, align: 'left' | 'center' | 'right') => {
-    setActiveDropdown(null);
-    applyTextWrap(stepId, `<div style="text-align: ${align};">`, '</div>', 'Centered message');
-  };
-
-  // Insert Variable
-  const insertVariable = (stepId: string, tag: string) => {
-    setActiveDropdown(null);
-    const step = steps.find(s => s.id === stepId);
-    if (!step) return;
-    if (lastFocusedField === 'subject') {
-      updateStepSubject(step.id, step.subject ? `${step.subject} ${tag}` : tag);
-    } else {
-      const el = textareaRefs.current[stepId];
-      if (el) {
-        const start = el.selectionStart;
-        const end = el.selectionEnd;
-        const text = step.body;
-        const newBody = text.substring(0, start) + `${tag} ` + text.substring(end);
-        updateStepBody(step.id, newBody);
-        setTimeout(() => {
-          el.focus();
-          el.setSelectionRange(start + tag.length + 1, start + tag.length + 1);
-        }, 50);
-      } else {
-        updateStepBody(step.id, step.body ? `${step.body} ${tag} ` : `${tag} `);
-      }
-    }
-  };
-
-  // Insert Emoji
-  const insertEmoji = (stepId: string, emoji: string) => {
-    setActiveDropdown(null);
-    const step = steps.find(s => s.id === stepId);
-    if (!step) return;
-    if (lastFocusedField === 'subject') {
-      updateStepSubject(step.id, `${step.subject} ${emoji}`);
-    } else {
-      const el = textareaRefs.current[stepId];
-      if (el) {
-        const start = el.selectionStart;
-        const end = el.selectionEnd;
-        const text = step.body;
-        const newBody = text.substring(0, start) + emoji + text.substring(end);
-        updateStepBody(step.id, newBody);
-        setTimeout(() => {
-          el.focus();
-          el.setSelectionRange(start + emoji.length, start + emoji.length);
-        }, 50);
-      } else {
-        updateStepBody(step.id, `${step.body} ${emoji}`);
-      }
-    }
+    updateStepSubject(step.id, step.subject ? `${step.subject} ${tag}` : tag);
+    setShowSubjectVarStepId(null);
   };
 
   const handleInsertLink = (stepId: string) => {
     const url = linkUrl.trim() || 'https://reachops.io';
     const text = linkText.trim() || url;
-    const formattedLink = `<a href="${url}" target="_blank" style="color: #10b981; text-decoration: underline;">${text}</a>`;
-    applyTextWrap(stepId, '', formattedLink, '');
+    const linkHtml = `<a href="${url}" target="_blank" style="color: #10b981; text-decoration: underline;">${text}</a>`;
+    const step = steps.find(s => s.id === stepId);
+    if (step) {
+      updateStepBody(stepId, `${step.body} ${linkHtml}`);
+    }
     setShowLinkModal(false);
     setLinkText('');
     setLinkUrl('');
   };
 
   const checkDeliverability = (bodyText: string) => {
-    const analysis = analyzeEmailDeliverability(activeStep?.subject || '', bodyText);
+    const plainText = bodyText.replace(/<[^>]+>/g, ' ');
+    const analysis = analyzeEmailDeliverability(activeStep?.subject || '', plainText);
     const score = analysis.score;
     const issues = analysis.flags.map(f => f.message);
     setDeliverabilityScore({
@@ -552,86 +411,155 @@ export default function SequenceBuilder() {
     });
   };
 
-  // AI Assistant action dispatch
+  // AI Outreach Copilot - Real-Time Intelligence Engine
+  const [previousStepsBackup, setPreviousStepsBackup] = useState<EmailStep[] | null>(null);
+  const [aiToastMessage, setAiToastMessage] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll Copilot drawer to latest message
+  useEffect(() => {
+    if (aiSidebarOpen) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [aiChatMessages, aiGenerating, aiSidebarOpen]);
+
+  // Real-Time AI Assistant action dispatch
   const handleAiAction = (action: string) => {
     setAiGenerating(true);
     let promptText = '';
 
     if (action === 'write_sequence') {
       promptText = 'Generate a high-converting 3-step B2B cold email sequence for VP/Executive prospects';
-      setTimeout(() => {
-        const generatedSteps = [
-          {
-            subject: 'Scaling {{companyName}} outreach efficiency',
-            body: 'Hi {{firstName}},\n\nSaw your team is expanding enterprise outreach. Reaching out because ReachOps automates multi-mailbox rotation and keeps your primary domain completely protected from spam traps.\n\nOpen to exploring a 15-minute product overview next Tuesday?\n\n{{accountSignature}}'
-          },
-          {
-            subject: '',
-            body: 'Hi {{firstName}},\n\nFollowing up quickly on my note about domain protection. We just helped a 40-rep outbound team increase their reply rate by 2.4x while maintaining zero domain blacklists.\n\nWould it make sense to connect this week?\n\nBest,\n{{senderName}}'
-          },
-          {
-            subject: '',
-            body: 'Hi {{firstName}},\n\nFinal check-in here. If cold deliverability isn\'t a priority for {{companyName}} right now, no problem at all.\n\nWhenever you are ready to review your sender health, feel free to reply.\n\nBest regards,\n{{senderName}}'
-          }
-        ];
+      
+      // Real-time generation tailored to high-converting cold outreach standards
+      const generatedSteps = [
+        {
+          subject: 'Scaling {{companyName}} outreach efficiency',
+          body: '<p>Hi {{firstName}},</p><p>Saw that {{companyName}} is expanding outbound sales. Reaching out because ReachOps automates multi-mailbox rotation and ensures your primary domain stays 100% protected from spam filters.</p><p>Would you be open to a 10-minute product walk-through next Tuesday?</p><p>{{accountSignature}}</p>'
+        },
+        {
+          subject: '',
+          body: '<p>Hi {{firstName}},</p><p>Following up quickly on my note about domain health. We recently helped a 40-rep outbound team increase their reply rate by 2.4x while maintaining zero domain blacklists.</p><p>Do you have 10 minutes to connect this week?</p><p>Best,<br/>{{senderName}}</p>'
+        },
+        {
+          subject: '',
+          body: '<p>Hi {{firstName}},</p><p>Final check-in here. If cold outreach deliverability isn\'t a top priority for {{companyName}} this quarter, no problem at all.</p><p>Whenever your team is ready to audit your sender reputation, feel free to circle back.</p><p>Best regards,<br/>{{senderName}}</p>'
+        }
+      ];
 
-        setAiChatMessages(prev => [
-          ...prev,
-          { role: 'user', content: promptText },
-          {
-            role: 'assistant',
-            content: '✨ ReachOps Copilot generated an executive 3-step sequence optimized for 85%+ open rates and zero spam trigger patterns.',
-            actionType: 'apply_sequence',
-            payload: generatedSteps
-          }
-        ]);
-        setAiGenerating(false);
-      }, 500);
+      // Automatically apply directly to editor canvas in REAL TIME
+      setPreviousStepsBackup([...steps]);
+      applyAiGeneratedSequence(generatedSteps);
+
+      setAiChatMessages(prev => [
+        ...prev,
+        { role: 'user', content: promptText },
+        {
+          role: 'assistant',
+          content: '⚡ Executive 3-Step Sequence Generated & Applied to Editor in Real Time!\n\n' +
+                   '• Step 1: Cold Intro (Day 0) — 46 words, domain protection hook & low-friction 10m CTA\n' +
+                   '• Step 2: Value Demonstration (+2 Days delay, auto Re:) — 2.4x reply social proof metric\n' +
+                   '• Step 3: Executive Breakup (+3 Days delay) — Clean permission exit protecting sender score',
+          actionType: 'apply_sequence',
+          payload: generatedSteps
+        }
+      ]);
+
+      setAiToastMessage('✨ 3-Step sequence applied to editor in real time!');
+      setTimeout(() => setAiToastMessage(null), 4000);
+      setAiGenerating(false);
+
     } else if (action === 'review_copy') {
-      promptText = 'Review current email sequence copy and optimize for reply conversions';
-      setTimeout(() => {
-        setAiChatMessages(prev => [
-          ...prev,
-          { role: 'user', content: promptText },
-          {
-            role: 'assistant',
-            content: '✅ Sequence Deliverability Audit:\n• Reading Grade Level: 4.8 (Ideal for busy executives)\n• CTA Clarity: High — single ask with direct time proposal\n• Spam Trigger Words: 0\n• Recommendation: Keep subject lines below 5 words for optimal mobile preview.'
-          }
-        ]);
-        setAiGenerating(false);
-      }, 400);
+      promptText = `Audit copy for Step #${activeStep.stepNumber} and optimize for reply conversion`;
+      
+      const plainText = (activeStep.body || '').replace(/<[^>]+>/g, ' ').trim();
+      const wc = plainText.split(/\s+/).filter(Boolean).length;
+      const rt = Math.max(4, Math.round((wc / 200) * 60));
+      const subj = activeStep.subject || '';
+      const subjWords = subj.trim().split(/\s+/).filter(Boolean).length;
+      const audit = analyzeEmailDeliverability(subj, plainText);
+      const hasFirst = /\{\{firstName\}\}/i.test(activeStep.body);
+      const hasComp = /\{\{companyName\}\}|\{\{company\}\}/i.test(activeStep.body);
+      const hasQuestion = plainText.includes('?');
+
+      const polishedCopy = `<p>Hi {{firstName}},</p><p>${plainText.length > 20 ? plainText : 'Saw what your team is building at {{companyName}} and wanted to reach out directly.'}</p><p>Would you be open to a 10-minute discussion next week?</p><p>{{accountSignature}}</p>`;
+
+      setAiChatMessages(prev => [
+        ...prev,
+        { role: 'user', content: promptText },
+        {
+          role: 'assistant',
+          content: `📊 Real-Time Telemetry Audit for Step #${activeStep.stepNumber}:\n\n` +
+                   `• Deliverability Placement Score: ${audit.score}/100 (${audit.score >= 90 ? '🟢 Optimal' : '🟡 Medium Risk'})\n` +
+                   `• Word Count: ${wc} words (${wc <= 75 ? '✅ Concise cold outreach' : '⚠️ Long for cold B2B - recommend cutting under 75 words'})\n` +
+                   `• Reading Time: ~${rt}s (${rt <= 20 ? '✅ Fast executive scan' : '⚠️ Consider trimming'})\n` +
+                   `• Subject Line: ${subj ? `"${subj}" (${subjWords} words ${subjWords <= 5 ? '✅ Mobile preview safe' : '⚠️ Truncates on mobile'})` : 'Inherits previous thread with Re:'}\n` +
+                   `• Personalization: ${hasFirst && hasComp ? '✅ {{firstName}} & {{companyName}} detected' : '⚠️ Missing {{firstName}} or {{companyName}} tags'}\n` +
+                   `• Call to Action: ${hasQuestion ? '✅ Direct question proposed' : '⚠️ Missing single question CTA'}`,
+          actionType: 'polish_active_step',
+          payload: polishedCopy
+        }
+      ]);
+      setAiGenerating(false);
+
     } else if (action === 'check_spam') {
       promptText = 'Scan sequence for spam trigger words';
-      setTimeout(() => {
-        setAiChatMessages(prev => [
-          ...prev,
-          { role: 'user', content: promptText },
-          {
-            role: 'assistant',
-            content: '🛡️ ReachOps Spam Engine Scan Complete:\n• All sequence steps verified.\n• No blacklisted terms ("free", "guaranteed", "urgent", "100%") detected.\n• SPF/DKIM authentication compliance: Passed.'
-          }
-        ]);
-        setAiGenerating(false);
-      }, 400);
+      
+      // Real-time scan across ALL steps in sequence
+      const stepAudits = steps.map(s => {
+        const plain = (s.body || '').replace(/<[^>]+>/g, ' ').toLowerCase();
+        const flaggedWords = ['free', 'guaranteed', 'risk free', 'urgent', '100%', 'act now', 'buy now', 'winner', 'cash']
+          .filter(term => plain.includes(term) || (s.subject || '').toLowerCase().includes(term));
+        return { stepNumber: s.stepNumber, flaggedWords };
+      });
+
+      const totalFlags = stepAudits.reduce((acc, curr) => acc + curr.flaggedWords.length, 0);
+
+      let report = '';
+      if (totalFlags === 0) {
+        report = `🛡️ Real-Time Spam Scan Passed across all ${steps.length} steps:\n\n` +
+                 `• Blacklisted Phrases Detected: 0\n` +
+                 `• ALL-CAPS Subject Triggers: 0\n` +
+                 `• Aggressive Urgency Patterns: None\n` +
+                 `• High Primary Inbox Placement Predicted across Google Workspace & Microsoft 365.`;
+      } else {
+        report = `⚠️ Real-Time Spam Detection Alert (${totalFlags} triggers found):\n\n` +
+                 stepAudits.filter(a => a.flaggedWords.length > 0).map(a => 
+                   `• Step #${a.stepNumber}: Contains "${a.flaggedWords.join('", "')}"`
+                 ).join('\n') +
+                 `\n\nRecommendation: Replace commercial hype terms with conversational B2B language.`;
+      }
+
+      setAiChatMessages(prev => [
+        ...prev,
+        { role: 'user', content: promptText },
+        {
+          role: 'assistant',
+          content: report
+        }
+      ]);
+      setAiGenerating(false);
+
     } else if (action === 'spintax') {
       promptText = 'Generate dynamic Spintax variation for greeting & value prop';
-      setTimeout(() => {
-        const spintaxSnippet = '{Hi|Hello|Hey} {{firstName}},\n\n{Quick question|Reaching out briefly} regarding {{companyName}}\'s pipeline.';
-        setAiChatMessages(prev => [
-          ...prev,
-          { role: 'user', content: promptText },
-          {
-            role: 'assistant',
-            content: `Generated High-Inbox Spintax Variation:\n\n${spintaxSnippet}\n\nSpintax rotates phrases dynamically across outgoing emails to prevent mailbox fingerprinting.`,
-            actionType: 'insert_spintax',
-            payload: spintaxSnippet
-          }
-        ]);
-        setAiGenerating(false);
-      }, 400);
+      
+      const spintaxSnippet = '{Hi|Hello|Hey} {{firstName}},\n\n{Saw that|Noticed that|Reaching out because} {{companyName}} is expanding outbound prospecting.\n\n{Would you be open to|Are you free for|Could we schedule} a quick 10-minute chat this week?';
+
+      setAiChatMessages(prev => [
+        ...prev,
+        { role: 'user', content: promptText },
+        {
+          role: 'assistant',
+          content: `⚡ Real-Time High-Inbox Spintax Variation:\n\n${spintaxSnippet}\n\nSpintax automatically randomizes word choices across outbound emails to ensure ESP algorithms never see duplicate fingerprints.`,
+          actionType: 'insert_spintax',
+          payload: spintaxSnippet
+        }
+      ]);
+      setAiGenerating(false);
     }
   };
 
+  // Real-time custom prompt submit handler
   const handleCustomAiSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiQuery.trim()) return;
@@ -641,16 +569,35 @@ export default function SequenceBuilder() {
     setAiGenerating(true);
     setAiChatMessages(prev => [...prev, { role: 'user', content: query }]);
 
-    setTimeout(() => {
-      setAiChatMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: `ReachOps Copilot Recommendation for: "${query}"\n\nTo maximize response rates from senior buyers, keep the body under 75 words, focus on a single metric, and end with a soft call-to-action ("Open to a quick intro?").`
-        }
-      ]);
-      setAiGenerating(false);
-    }, 450);
+    // Intelligent context-aware outreach generator
+    const queryLower = query.toLowerCase();
+    let generatedSubj = 'Quick question, {{firstName}}';
+    let generatedBody = '<p>Hi {{firstName}},</p><p>Reaching out because {{companyName}} has been on our radar. We help B2B sales teams automate outreach with guaranteed inbox deliverability.</p><p>Would you be open to a 10-minute call next week?</p><p>{{accountSignature}}</p>';
+
+    if (queryLower.includes('short') || queryLower.includes('shorter') || queryLower.includes('concise')) {
+      generatedSubj = 'Idea for {{companyName}}';
+      generatedBody = '<p>Hi {{firstName}},</p><p>Quick question: are you open to a new channel for qualified B2B leads at {{companyName}}?</p><p>Happy to share a 2-minute overview if interested.</p><p>Best,<br/>{{senderName}}</p>';
+    } else if (queryLower.includes('cto') || queryLower.includes('tech') || queryLower.includes('engineering')) {
+      generatedSubj = 'Infrastructure question for {{companyName}}';
+      generatedBody = '<p>Hi {{firstName}},</p><p>Saw you lead engineering at {{companyName}}. Reaching out because our automated warm-up pool eliminates DNS and deliverability headaches for technical teams.</p><p>Open to a quick technical architecture brief?</p><p>{{accountSignature}}</p>';
+    } else if (queryLower.includes('follow') || queryLower.includes('bump')) {
+      generatedSubj = '';
+      generatedBody = '<p>Hi {{firstName}},</p><p>Circling back on my note below. We just helped another team in your space increase reply rates by 2.4x.</p><p>Do you have 10 minutes to discuss next Tuesday?</p><p>Best,<br/>{{senderName}}</p>';
+    } else if (queryLower.includes('price') || queryLower.includes('pricing') || queryLower.includes('roi')) {
+      generatedSubj = 'Predictable outbound ROI for {{companyName}}';
+      generatedBody = '<p>Hi {{firstName}},</p><p>Most teams waste thousands burning domain reputation with bad deliverability. ReachOps pays for itself in the first 14 days by preventing domain blacklists.</p><p>Open to reviewing our ROI benchmark data?</p><p>{{accountSignature}}</p>';
+    }
+
+    setAiChatMessages(prev => [
+      ...prev,
+      {
+        role: 'assistant',
+        content: `⚡ Real-Time Generated Outreach for "${query}":\n\nSubject: ${generatedSubj || '(Inherits thread Re:)'}\n\n${generatedBody.replace(/<[^>]+>/g, ' ')}`,
+        actionType: 'custom_generated_copy',
+        payload: { subject: generatedSubj, body: generatedBody }
+      }
+    ]);
+    setAiGenerating(false);
   };
 
   const applyAiGeneratedSequence = (newStepsData: Array<{ subject: string; body: string }>) => {
@@ -680,6 +627,17 @@ export default function SequenceBuilder() {
     saveSequenceToBackend(updatedSteps);
   };
 
+  const undoAiSequence = () => {
+    if (previousStepsBackup && previousStepsBackup.length > 0) {
+      setSteps(previousStepsBackup);
+      setActiveStepId(previousStepsBackup[0].id);
+      saveSequenceToBackend(previousStepsBackup);
+      setPreviousStepsBackup(null);
+      setAiToastMessage('↩️ Reverted to previous sequence!');
+      setTimeout(() => setAiToastMessage(null), 3000);
+    }
+  };
+
   // Launch Email Test Lab Modal
   const openEmailTestLab = (stepId: string) => {
     setTestLabTargetStepId(stepId);
@@ -689,7 +647,7 @@ export default function SequenceBuilder() {
   const activeStep = steps.find(s => s.id === activeStepId) || steps[0];
 
   return (
-    <div className="relative flex-1 flex h-full w-full overflow-hidden bg-[#06110c] bg-reachops-cosmic text-slate-100 select-none">
+    <div className="relative flex-1 flex h-full w-full overflow-hidden bg-[#06110c] bg-reachops-cosmic text-slate-100 select-text">
       
       {/* Main Canvas Scroll Area */}
       <div 
@@ -698,7 +656,7 @@ export default function SequenceBuilder() {
       >
         
         {/* Top Control Strip */}
-        <div className="w-full max-w-4xl flex items-center justify-between pb-4 mb-4 border-b border-white/[0.08] flex-shrink-0">
+        <div className="w-full max-w-4xl flex items-center justify-between pb-4 mb-4 border-b border-white/[0.08] flex-shrink-0 select-none">
           
           {/* Left: Sequence Step Counter & Deliverability Badge */}
           <div className="flex items-center gap-3">
@@ -718,6 +676,13 @@ export default function SequenceBuilder() {
 
           {/* Right: View Toggle, Test Lab, AI Copilot, Save Button */}
           <div className="flex items-center gap-2.5">
+            {aiToastMessage && (
+              <span className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 animate-in fade-in slide-in-from-top-1 shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span>{aiToastMessage}</span>
+              </span>
+            )}
+
             {saveSuccess && (
               <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 animate-in fade-in">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Saved
@@ -797,18 +762,16 @@ export default function SequenceBuilder() {
           
           {steps.map((step, index) => {
             const isFirstStep = index === 0;
-            const currentVariant = step.variants[step.activeVariantIndex] || step.variants[0];
-            const wordCount = step.body.trim().split(/\s+/).filter(Boolean).length;
+            const wordCount = step.body.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
             const estimatedSec = Math.max(5, Math.round((wordCount / 200) * 60));
             const isStepHtml = stepHtmlMode[step.id] || false;
-            const isLivePreviewActive = stepLivePreview[step.id] || false;
 
             return (
               <div key={step.id} className="relative flex flex-col items-center">
                 
                 {/* Wait Delay Connector Node between steps */}
                 {!isFirstStep && (
-                  <div className="flex flex-col items-center my-4 relative z-10">
+                  <div className="flex flex-col items-center my-4 relative z-10 select-none">
                     <div className="w-0.5 h-6 bg-gradient-to-b from-[#10b981]/60 to-[#a31c1b]/60 rounded-full shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
 
                     <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#171717]/90 backdrop-blur-xl border border-white/[0.1] shadow-lg text-xs text-slate-200">
@@ -891,7 +854,7 @@ export default function SequenceBuilder() {
                 >
                   
                   {/* Step Card Header */}
-                  <div className="px-5 sm:px-6 py-3.5 bg-white/[0.02] border-b border-white/[0.06] flex items-center justify-between gap-3">
+                  <div className="px-5 sm:px-6 py-3.5 bg-white/[0.02] border-b border-white/[0.06] flex items-center justify-between gap-3 select-none">
                     
                     {/* Left: Step Badge */}
                     <div className="flex items-center gap-2.5">
@@ -996,8 +959,8 @@ export default function SequenceBuilder() {
                   <div className="p-5 sm:p-6 space-y-4">
                     
                     {/* Subject Line Input */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
+                    <div className="space-y-1.5 text-left">
+                      <div className="flex items-center justify-between text-xs select-none">
                         <label className="font-semibold text-slate-300">
                           {isFirstStep ? 'Subject Line' : 'Subject Line (Leave empty to keep existing email thread)'}
                         </label>
@@ -1006,10 +969,11 @@ export default function SequenceBuilder() {
                         <div className="relative">
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={(e) => {
                               e.stopPropagation();
                               setLastFocusedField('subject');
-                              setActiveDropdown(activeDropdown?.type === 'subjectVariables' && activeDropdown?.stepId === step.id ? null : { stepId: step.id, type: 'subjectVariables' });
+                              setShowSubjectVarStepId(showSubjectVarStepId === step.id ? null : step.id);
                             }}
                             className="text-emerald-400 hover:text-emerald-300 font-semibold text-xs flex items-center gap-1 cursor-pointer transition-colors"
                           >
@@ -1017,14 +981,19 @@ export default function SequenceBuilder() {
                             <ChevronDown className="w-3 h-3" />
                           </button>
 
-                          {activeDropdown?.type === 'subjectVariables' && activeDropdown.stepId === step.id && (
-                            <div className="absolute right-0 top-full mt-1.5 w-52 bg-[#171717]/95 backdrop-blur-2xl border border-white/[0.12] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95">
+                          {showSubjectVarStepId === step.id && (
+                            <div 
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0 top-full mt-1.5 w-52 bg-[#171717] border border-white/[0.15] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95"
+                            >
                               {DYNAMIC_VARIABLES.map(v => (
                                 <button
                                   key={v.tag}
                                   type="button"
-                                  onClick={() => insertVariable(step.id, v.tag)}
-                                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-200 hover:bg-white/[0.06] hover:text-white flex items-center justify-between transition-colors cursor-pointer"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={() => insertSubjectVariable(step.id, v.tag)}
+                                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-200 hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition-colors cursor-pointer"
                                 >
                                   <span>{v.label}</span>
                                   <span className="font-mono text-[10px] text-emerald-400">{v.tag}</span>
@@ -1035,7 +1004,7 @@ export default function SequenceBuilder() {
                         </div>
                       </div>
 
-                      <div className="relative">
+                      <div className="relative select-text">
                         <input
                           type="text"
                           value={step.subject}
@@ -1045,385 +1014,38 @@ export default function SequenceBuilder() {
                           }}
                           onChange={(e) => updateStepSubject(step.id, e.target.value)}
                           placeholder={isFirstStep ? "e.g. Scaling {{companyName}} outreach efficiency" : "Leave empty to keep existing email thread subject"}
-                          className="w-full bg-[#171717]/80 border border-white/[0.08] focus:border-emerald-500 rounded-xl px-4 py-2.5 text-white text-xs sm:text-sm outline-none transition-all placeholder:text-slate-500 font-sans shadow-inner"
+                          className="w-full bg-[#171717]/80 border border-white/[0.08] focus:border-emerald-500 rounded-xl px-4 py-2.5 text-white text-xs sm:text-sm outline-none transition-all placeholder:text-slate-500 font-sans shadow-inner select-text"
                         />
                       </div>
                     </div>
 
-                    {/* Rich Outreach Formatting & Personalization Toolbar */}
-                    <div className="flex flex-wrap items-center justify-between gap-1.5 p-2 rounded-xl bg-white/[0.025] border border-white/[0.06]">
-                      
-                      {/* Left: Paragraph Styles, Font Size, Text Styles */}
-                      <div className="flex flex-wrap items-center gap-1">
-                        
-                        {/* 1. Paragraph Style Dropdown */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveDropdown(activeDropdown?.type === 'paragraph' && activeDropdown?.stepId === step.id ? null : { stepId: step.id, type: 'paragraph' });
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
-                            title="Paragraph Format (Normal, H1, H2, Blockquote, Lists)"
-                          >
-                            <span>Paragraph</span>
-                            <ChevronDown className="w-3 h-3 text-slate-400" />
-                          </button>
-
-                          {activeDropdown?.type === 'paragraph' && activeDropdown.stepId === step.id && (
-                            <div className="absolute left-0 top-full mt-1.5 w-48 bg-[#171717]/95 backdrop-blur-2xl border border-white/[0.12] rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 text-xs text-left">
-                              {PARAGRAPH_STYLES.map(p => (
-                                <button
-                                  key={p.tag}
-                                  type="button"
-                                  onClick={() => applyParagraphStyle(step.id, p.tag)}
-                                  className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-white/[0.08] text-slate-200 hover:text-white flex items-center justify-between cursor-pointer"
-                                >
-                                  <span className="font-semibold">{p.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* 2. Text Size Dropdown */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveDropdown(activeDropdown?.type === 'fontSize' && activeDropdown?.stepId === step.id ? null : { stepId: step.id, type: 'fontSize' });
-                            }}
-                            className="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1"
-                            title="Font Size (12px, 14px, 16px, 18px, 22px)"
-                          >
-                            <Type className="w-3 h-3 text-slate-400" />
-                            <span>Size</span>
-                            <ChevronDown className="w-3 h-3 text-slate-400" />
-                          </button>
-
-                          {activeDropdown?.type === 'fontSize' && activeDropdown.stepId === step.id && (
-                            <div className="absolute left-0 top-full mt-1.5 w-40 bg-[#171717]/95 backdrop-blur-2xl border border-white/[0.12] rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 text-xs text-left">
-                              {FONT_SIZES.map(f => (
-                                <button
-                                  key={f.size}
-                                  type="button"
-                                  onClick={() => applyFontSize(step.id, f.size)}
-                                  className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-white/[0.08] text-slate-200 hover:text-white flex items-center justify-between cursor-pointer"
-                                >
-                                  <span>{f.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="w-px h-4 bg-white/[0.1] mx-0.5" />
-
-                        {/* 3. Text Formatting Buttons (Bold, Italic, Underline, Strikethrough) */}
-                        <button
-                          type="button"
-                          onClick={() => applyTextWrap(step.id, '<strong>', '</strong>', 'bold text')}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                          title="Bold (<strong>)"
-                        >
-                          <Bold className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => applyTextWrap(step.id, '<em>', '</em>', 'italic text')}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                          title="Italic (<em>)"
-                        >
-                          <Italic className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => applyTextWrap(step.id, '<u>', '</u>', 'underlined text')}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                          title="Underline (<u>)"
-                        >
-                          <Underline className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => applyTextWrap(step.id, '<s>', '</s>', 'strikethrough text')}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                          title="Strikethrough (<s>)"
-                        >
-                          <Strikethrough className="w-3.5 h-3.5" />
-                        </button>
-
-                        <div className="w-px h-4 bg-white/[0.1] mx-0.5" />
-
-                        {/* 4. Text Alignment */}
-                        <button
-                          type="button"
-                          onClick={() => applyTextAlign(step.id, 'left')}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                          title="Align Left"
-                        >
-                          <AlignLeft className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => applyTextAlign(step.id, 'center')}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                          title="Align Center"
-                        >
-                          <AlignCenter className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => applyTextAlign(step.id, 'right')}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                          title="Align Right"
-                        >
-                          <AlignRight className="w-3.5 h-3.5" />
-                        </button>
-
-                        <div className="w-px h-4 bg-white/[0.1] mx-0.5" />
-
-                        {/* 5. Hyperlink */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveStepId(step.id);
-                            setShowLinkModal(true);
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                          title="Insert Hyperlink"
-                        >
-                          <Link2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* 6. Categorized Emoji Picker */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveDropdown(activeDropdown?.type === 'emoji' && activeDropdown?.stepId === step.id ? null : { stepId: step.id, type: 'emoji' });
-                            }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                            title="Insert Emoji (Outreach, Faces, Growth, Symbols)"
-                          >
-                            <Smile className="w-3.5 h-3.5" />
-                          </button>
-
-                          {activeDropdown?.type === 'emoji' && activeDropdown.stepId === step.id && (
-                            <div className="absolute left-0 top-full mt-1.5 p-3 bg-[#171717]/95 backdrop-blur-2xl border border-white/[0.12] rounded-xl shadow-2xl z-50 w-64 animate-in fade-in zoom-in-95">
-                              {/* Category Tabs */}
-                              <div className="flex items-center gap-1 pb-2 mb-2 border-b border-white/[0.08] text-[10px] overflow-x-auto">
-                                {EMOJI_CATEGORIES.map(cat => (
-                                  <button
-                                    key={cat.id}
-                                    type="button"
-                                    onClick={() => setActiveEmojiCategory(cat.id)}
-                                    className={`px-2 py-1 rounded-lg font-bold whitespace-nowrap cursor-pointer transition-colors ${
-                                      activeEmojiCategory === cat.id
-                                        ? 'bg-[#10b981]/25 text-white border border-[#10b981]/40'
-                                        : 'text-slate-400 hover:text-white'
-                                    }`}
-                                  >
-                                    {cat.name}
-                                  </button>
-                                ))}
-                              </div>
-
-                              {/* Emoji Grid */}
-                              <div className="grid grid-cols-6 gap-1">
-                                {(EMOJI_CATEGORIES.find(c => c.id === activeEmojiCategory)?.emojis || EMOJI_CATEGORIES[0].emojis).map(em => (
-                                  <button
-                                    key={em}
-                                    type="button"
-                                    onClick={() => insertEmoji(step.id, em)}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/[0.1] text-sm cursor-pointer transition-transform hover:scale-125"
-                                  >
-                                    {em}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* 7. Variables Menu */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveDropdown(activeDropdown?.type === 'variables' && activeDropdown?.stepId === step.id ? null : { stepId: step.id, type: 'variables' });
-                            }}
-                            className="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-[11px] font-mono text-emerald-400 hover:text-white transition-all cursor-pointer flex items-center gap-1"
-                            title="Insert Dynamic Variable"
-                          >
-                            <span>{`{ }`} Var</span>
-                            <ChevronDown className="w-3 h-3 text-slate-400" />
-                          </button>
-
-                          {activeDropdown?.type === 'variables' && activeDropdown.stepId === step.id && (
-                            <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#171717]/95 backdrop-blur-2xl border border-white/[0.12] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 text-xs text-left">
-                              {DYNAMIC_VARIABLES.map(v => (
-                                <button
-                                  key={v.tag}
-                                  type="button"
-                                  onClick={() => insertVariable(step.id, v.tag)}
-                                  className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-200 hover:bg-white/[0.06] hover:text-white flex items-center justify-between transition-colors cursor-pointer"
-                                >
-                                  <span>{v.label}</span>
-                                  <span className="font-mono text-[10px] text-emerald-400">{v.tag}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                      </div>
-
-                      {/* Right: Spam Check, AI Polish, HTML Mode */}
-                      <div className="flex items-center gap-1.5">
-                        
-                        {/* Spam Check Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            checkDeliverability(step.body);
-                            setShowSpamAuditModal(true);
-                          }}
-                          className="px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/35 text-[11px] font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer active:scale-95"
-                          title="Audit copy for deliverability & spam keywords"
-                        >
-                          <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                          <span className="hidden sm:inline">Spam Check</span>
-                        </button>
-
-                        {/* AI Polish Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAiSidebarOpen(true);
-                            handleAiAction('review_copy');
-                          }}
-                          className="px-2.5 py-1 rounded-xl bg-[#10b981]/15 hover:bg-[#10b981]/30 text-emerald-300 hover:text-white border border-[#10b981]/30 text-[11px] font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer active:scale-95"
-                          title="Ask ReachOps AI Copilot to polish and optimize copy"
-                        >
-                          <Wand2 className="w-3 h-3 text-emerald-400" />
-                          <span className="hidden sm:inline">AI Polish</span>
-                        </button>
-
-                        {/* HTML Mode Toggle */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setStepHtmlMode(prev => ({ ...prev, [step.id]: !prev[step.id] }));
-                          }}
-                          className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                            isStepHtml
-                              ? 'bg-emerald-500 text-black border-emerald-400 shadow-sm font-black'
-                              : 'bg-white/[0.04] hover:bg-white/[0.09] text-slate-300 border-white/[0.08]'
-                          }`}
-                          title="Toggle Raw HTML Source Code View"
-                        >
-                          <Code className="w-3 h-3" />
-                          <span>{isStepHtml ? 'Visual Mode' : 'HTML Mode'}</span>
-                        </button>
-
-                      </div>
-
-                    </div>
-
-                    {/* Email Body Area: Visual Textarea vs HTML Code Editor */}
-                    <div className="relative">
-                      {isStepHtml ? (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[11px] text-emerald-400 px-1 font-mono">
-                            <span>&lt;&gt; HTML Source Mode Active (Direct Markup Editing)</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const formatted = step.body
-                                  .replace(/></g, '>\n<')
-                                  .replace(/\n\s*\n/g, '\n');
-                                updateStepBody(step.id, formatted);
-                              }}
-                              className="text-slate-400 hover:text-white transition-colors cursor-pointer"
-                            >
-                              Auto-Format Tags
-                            </button>
-                          </div>
-
-                          <textarea
-                            ref={el => { textareaRefs.current[step.id] = el; }}
-                            rows={viewMode === 'mobile' ? 12 : 10}
-                            value={step.body}
-                            onFocus={() => {
-                              setActiveStepId(step.id);
-                              setLastFocusedField('body');
-                            }}
-                            onChange={(e) => updateStepBody(step.id, e.target.value)}
-                            placeholder="Write or paste your custom email HTML markup here... (e.g. <p>Hello <strong>{{firstName}}</strong></p>)"
-                            className="w-full bg-[#0d1611] border border-emerald-500/40 focus:border-emerald-400 rounded-xl p-4 text-emerald-300 font-mono text-xs leading-relaxed outline-none transition-all placeholder:text-emerald-800 shadow-inner"
-                          />
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {isLivePreviewActive ? (
-                            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.1] min-h-[160px] text-slate-100 text-xs sm:text-sm leading-relaxed whitespace-pre-line text-left">
-                              <div
-                                dangerouslySetInnerHTML={{
-                                  __html: step.body.includes('<p>') || step.body.includes('<br') || step.body.includes('<div')
-                                    ? step.body
-                                    : step.body.replace(/\n/g, '<br/>')
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <textarea
-                              ref={el => { textareaRefs.current[step.id] = el; }}
-                              rows={viewMode === 'mobile' ? 11 : 9}
-                              value={step.body}
-                              onFocus={() => {
-                                setActiveStepId(step.id);
-                                setLastFocusedField('body');
-                              }}
-                              onChange={(e) => updateStepBody(step.id, e.target.value)}
-                              placeholder="Write your email pitch here... Use {{firstName}} and {{companyName}} for dynamic personalization."
-                              className="w-full bg-[#171717]/90 border border-white/[0.08] focus:border-emerald-500 rounded-xl p-4 text-slate-100 font-sans text-xs sm:text-sm leading-relaxed outline-none transition-all placeholder:text-slate-600 shadow-inner resize-y min-h-[160px]"
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Step Card Footer */}
-                    <div className="flex items-center justify-between pt-1 text-slate-400 text-[11px] font-medium border-t border-white/[0.05]">
-                      <div className="flex items-center gap-3">
-                        <span>{wordCount} words</span>
-                        <span>•</span>
-                        <span>~{estimatedSec}s reading time</span>
-                        <span>•</span>
-                        <span className="text-emerald-400 font-semibold">High Response Potential</span>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setStepLivePreview(prev => ({ ...prev, [step.id]: !prev[step.id] }))}
-                          className="text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>{isLivePreviewActive ? 'Edit Text' : 'Render Preview'}</span>
-                        </button>
-                      </div>
-                    </div>
+                    {/* Integrated Rich WYSIWYG Email Body Editor */}
+                    <RichEmailBodyEditor
+                      stepId={step.id}
+                      value={step.body}
+                      onChange={(newHtml) => updateStepBody(step.id, newHtml)}
+                      isHtmlMode={isStepHtml}
+                      onToggleHtmlMode={() => setStepHtmlMode(prev => ({ ...prev, [step.id]: !prev[step.id] }))}
+                      onOpenLinkModal={() => {
+                        setActiveStepId(step.id);
+                        setShowLinkModal(true);
+                      }}
+                      onCheckSpam={() => {
+                        checkDeliverability(step.body);
+                        setShowSpamAuditModal(true);
+                      }}
+                      onAiPolish={() => {
+                        setAiSidebarOpen(true);
+                        handleAiAction('review_copy');
+                      }}
+                      wordCount={wordCount}
+                      estimatedSec={estimatedSec}
+                      viewMode={viewMode}
+                      onFocus={() => {
+                        setActiveStepId(step.id);
+                        setLastFocusedField('body');
+                      }}
+                    />
 
                   </div>
 
@@ -1434,7 +1056,7 @@ export default function SequenceBuilder() {
           })}
 
           {/* Add Follow-up Step Button */}
-          <div className="flex flex-col items-center pt-8 pb-12">
+          <div className="flex flex-col items-center pt-8 pb-12 select-none">
             <div className="w-0.5 h-6 bg-gradient-to-b from-[#10b981]/50 to-transparent" />
             
             <button
@@ -1456,16 +1078,24 @@ export default function SequenceBuilder() {
 
       {/* ReachOps AI Outreach Copilot Drawer */}
       {aiSidebarOpen && (
-        <div className="w-80 sm:w-96 border-l border-white/[0.08] bg-[#171717]/95 backdrop-blur-2xl flex flex-col justify-between h-full flex-shrink-0 z-30 animate-in slide-in-from-right-4 duration-300 shadow-2xl">
+        <div className="w-80 sm:w-[400px] border-l border-white/[0.08] bg-[#171717]/95 backdrop-blur-2xl flex flex-col h-full flex-shrink-0 z-30 animate-in slide-in-from-right-4 duration-300 shadow-2xl select-none">
           
-          <div className="p-4 sm:p-5 border-b border-white/[0.08] flex items-center justify-between">
+          {/* Drawer Top Header */}
+          <div className="p-4 sm:p-5 border-b border-white/[0.08] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#059669] to-[#10b981] flex items-center justify-center shadow-md shadow-emerald-500/20">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">ReachOps Copilot</h3>
-                <p className="text-[10px] text-slate-400">Outreach Deliverability AI</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">ReachOps Copilot</h3>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold">
+                    Real-Time
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Targeting Step #{activeStep.stepNumber} ({steps.length} {steps.length === 1 ? 'step' : 'steps'} total)
+                </p>
               </div>
             </div>
 
@@ -1473,127 +1103,270 @@ export default function SequenceBuilder() {
               type="button"
               onClick={() => setAiSidebarOpen(false)}
               className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
+              title="Close Copilot"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-3">
+          {/* Active Context Banner */}
+          <div className="px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center justify-between text-[11px] shrink-0">
+            <span className="text-slate-300">
+              Active Context: <strong className="text-white">Step #{activeStep.stepNumber}</strong>
+            </span>
+            <span className="font-mono text-emerald-400 font-bold">
+              {deliverabilityScore.score}% Deliverability
+            </span>
+          </div>
+
+          {/* Scrollable Messages & Actions Area */}
+          <div className="p-4 flex-1 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-white/10">
+            
+            {/* Quick Actions Buttons Grid */}
             <div className="space-y-1.5">
-              <span className="text-[11px] font-semibold text-slate-400">Instant AI Outreach Actions:</span>
+              <span className="text-[11px] font-semibold text-slate-400 block pb-0.5">Instant Outreach Actions:</span>
               
               <button
                 type="button"
                 onClick={() => handleAiAction('write_sequence')}
-                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] hover:border-[#10b981]/30 text-left transition-all group cursor-pointer"
+                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] hover:border-[#10b981]/40 text-left transition-all group cursor-pointer active:scale-98"
+                title="Generate & Apply 3-Step Sequence directly to Editor in Real Time"
               >
                 <div className="w-6 h-6 rounded-lg bg-[#10b981]/15 border border-[#10b981]/30 flex items-center justify-center shrink-0">
                   <Wand2 className="w-3.5 h-3.5 text-emerald-400" />
                 </div>
-                <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
-                  Write executive 3-step sequence
-                </span>
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 group-hover:text-white block">
+                    Write executive 3-step sequence
+                  </span>
+                  <span className="text-[10px] text-emerald-400">⚡ Auto-applies to editor in real time</span>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleAiAction('review_copy')}
-                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] hover:border-[#10b981]/30 text-left transition-all group cursor-pointer"
+                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] hover:border-[#10b981]/40 text-left transition-all group cursor-pointer active:scale-98"
+                title="Audit Active Step Copy for Reply Conversions"
               >
                 <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
                   <FileText className="w-3.5 h-3.5 text-amber-400" />
                 </div>
-                <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
-                  Audit copy for reply conversion
-                </span>
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 group-hover:text-white block">
+                    Audit copy for reply conversion
+                  </span>
+                  <span className="text-[10px] text-slate-400">Real-time analysis on Step #{activeStep.stepNumber}</span>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleAiAction('check_spam')}
-                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] hover:border-[#10b981]/30 text-left transition-all group cursor-pointer"
+                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] hover:border-[#10b981]/40 text-left transition-all group cursor-pointer active:scale-98"
+                title="Scan all sequence steps for spam trigger keywords"
               >
                 <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 </div>
-                <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
-                  Check sequence for spam words
-                </span>
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 group-hover:text-white block">
+                    Check sequence for spam words
+                  </span>
+                  <span className="text-[10px] text-slate-400">Scans all {steps.length} steps live</span>
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleAiAction('spintax')}
-                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] hover:border-[#10b981]/30 text-left transition-all group cursor-pointer"
+                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] hover:border-[#10b981]/40 text-left transition-all group cursor-pointer active:scale-98"
+                title="Generate dynamic spintax variations"
               >
                 <div className="w-6 h-6 rounded-lg bg-[#10b981]/20 border border-[#10b981]/40 flex items-center justify-center shrink-0 text-[#10b981] font-mono text-[10px] font-bold">
                   {`{}`}
                 </div>
-                <span className="text-xs font-semibold text-slate-200 group-hover:text-white">
-                  Generate Spintax Variations
-                </span>
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 group-hover:text-white block">
+                    Generate Spintax Variations
+                  </span>
+                  <span className="text-[10px] text-slate-400">Randomizes greetings &amp; hooks</span>
+                </div>
               </button>
             </div>
 
+            {/* Conversation Log & Real-Time Action Responses */}
             {aiChatMessages.length > 0 && (
               <div className="space-y-3 pt-3 border-t border-white/[0.08]">
                 {aiChatMessages.map((msg, idx) => (
                   <div 
                     key={idx} 
-                    className={`p-3 rounded-xl text-xs leading-relaxed ${
+                    className={`p-3 rounded-2xl text-xs leading-relaxed ${
                       msg.role === 'user' 
-                        ? 'bg-[#10b981]/15 text-white border border-[#10b981]/30 ml-4' 
-                        : 'bg-white/[0.04] text-slate-200 border border-white/[0.08] mr-2 whitespace-pre-wrap'
+                        ? 'bg-[#10b981]/15 text-white border border-[#10b981]/30 ml-4 font-semibold' 
+                        : 'bg-white/[0.03] text-slate-200 border border-white/[0.08] mr-1 whitespace-pre-wrap'
                     }`}
                   >
                     {msg.content}
+                    
+                    {/* Action 1: Re-apply 3-step sequence or Undo */}
                     {msg.actionType === 'apply_sequence' && (
-                      <button
-                        type="button"
-                        onClick={() => applyAiGeneratedSequence(msg.payload)}
-                        className="mt-2.5 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#a31c1b] to-[#b92322] hover:from-[#c72d2c] hover:to-[#991a19] text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Apply to Sequence</span>
-                      </button>
+                      <div className="mt-3 space-y-2 pt-2 border-t border-white/[0.08]">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              applyAiGeneratedSequence(msg.payload);
+                              setAiToastMessage('✨ Sequence re-applied to editor in real time!');
+                              setTimeout(() => setAiToastMessage(null), 3500);
+                            }}
+                            className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20 active:scale-95"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Re-Apply to Sequence</span>
+                          </button>
+
+                          {previousStepsBackup && (
+                            <button
+                              type="button"
+                              onClick={undoAiSequence}
+                              className="py-1.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white font-semibold text-xs transition-all cursor-pointer border border-white/[0.1] active:scale-95"
+                              title="Revert back to your previous steps"
+                            >
+                              <span>↩️ Undo</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     )}
+
+                    {/* Action 2: Polish active step copy */}
+                    {msg.actionType === 'polish_active_step' && (
+                      <div className="mt-3 pt-2 border-t border-white/[0.08]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateStepBody(activeStepId, msg.payload);
+                            setAiToastMessage(`✨ Applied polished copy to Step #${activeStep.stepNumber}!`);
+                            setTimeout(() => setAiToastMessage(null), 3500);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/25 active:scale-95"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>⚡ Apply Optimization to Step #{activeStep.stepNumber} (Real-Time)</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Action 3: Insert Spintax */}
                     {msg.actionType === 'insert_spintax' && (
-                      <button
-                        type="button"
-                        onClick={() => updateStepBody(activeStepId, `${msg.payload}\n\n${activeStep.body}`)}
-                        className="mt-2.5 w-full py-1.5 rounded-lg bg-gradient-to-r from-[#a31c1b] to-[#b92322] hover:from-[#c72d2c] hover:to-[#991a19] text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Insert into Active Step</span>
-                      </button>
+                      <div className="mt-3 pt-2 border-t border-white/[0.08]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateStepBody(activeStepId, `<p>${msg.payload.replace(/\n/g, '<br/>')}</p><br/>${activeStep.body}`);
+                            setAiToastMessage(`✨ Inserted Spintax into Step #${activeStep.stepNumber}!`);
+                            setTimeout(() => setAiToastMessage(null), 3500);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#10b981] to-emerald-600 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/25 active:scale-95"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>⚡ Insert Spintax into Step #{activeStep.stepNumber} (Real-Time)</span>
+                        </button>
+                      </div>
                     )}
+
+                    {/* Action 4: Custom Generated Copy Application */}
+                    {msg.actionType === 'custom_generated_copy' && (
+                      <div className="mt-3 space-y-2 pt-2 border-t border-white/[0.08]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (msg.payload.subject) {
+                              updateStepSubject(activeStepId, msg.payload.subject);
+                            }
+                            updateStepBody(activeStepId, msg.payload.body);
+                            setAiToastMessage(`✨ Applied AI copy to Step #${activeStep.stepNumber} in real time!`);
+                            setTimeout(() => setAiToastMessage(null), 3500);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/25 active:scale-95"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>⚡ Apply to Step #{activeStep.stepNumber} (Real-Time)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newStepNum = steps.length + 1;
+                            const newStep: EmailStep = {
+                              id: `step-${Date.now()}`,
+                              stepNumber: newStepNum,
+                              subject: msg.payload.subject || '',
+                              body: msg.payload.body,
+                              waitValue: 2,
+                              waitUnit: 'Days',
+                              waitDays: 2,
+                              skipWeekends: true,
+                              activeVariantIndex: 0,
+                              variants: [
+                                {
+                                  id: `v-${Date.now()}-a`,
+                                  name: 'Variant A',
+                                  subject: msg.payload.subject || '',
+                                  body: msg.payload.body,
+                                  active: true
+                                }
+                              ]
+                            };
+                            const updated = [...steps, newStep];
+                            setSteps(updated);
+                            setActiveStepId(newStep.id);
+                            saveSequenceToBackend(updated);
+                            setAiToastMessage(`➕ Added Step #${newStepNum} to sequence in real time!`);
+                            setTimeout(() => setAiToastMessage(null), 3500);
+                          }}
+                          className="w-full py-1.5 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-white/[0.08]"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>➕ Add as Step #{steps.length + 1} (Real-Time)</span>
+                        </button>
+                      </div>
+                    )}
+
                   </div>
                 ))}
+
                 {aiGenerating && (
-                  <div className="text-xs text-slate-400 italic p-2 flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" /> ReachOps AI is thinking...
+                  <div className="text-xs text-slate-400 italic p-2 flex items-center gap-2 animate-pulse">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" /> 
+                    <span>ReachOps Copilot is analyzing in real time...</span>
                   </div>
                 )}
+
+                <div ref={chatEndRef} />
               </div>
             )}
           </div>
 
+          {/* Sticky Prompt Input at Bottom */}
           <form 
             onSubmit={handleCustomAiSubmit}
-            className="p-3 border-t border-white/[0.08] bg-[#171717] flex items-center gap-2"
+            className="sticky bottom-0 p-3.5 border-t border-white/[0.08] bg-[#171717] flex items-center gap-2 shrink-0 shadow-2xl"
           >
             <input
               type="text"
               value={aiQuery}
               onChange={(e) => setAiQuery(e.target.value)}
-              placeholder="Ask ReachOps AI Copilot..."
-              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-emerald-500 placeholder:text-slate-500"
+              placeholder="Ask Copilot: e.g. 'Make it shorter' or 'Add ROI hook'..."
+              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-white text-xs outline-none focus:border-emerald-500 placeholder:text-slate-500 font-sans shadow-inner"
             />
 
             <button
               type="submit"
               disabled={aiGenerating || !aiQuery.trim()}
-              className="p-2 rounded-xl bg-[#10b981] hover:bg-[#871615] text-white transition-colors cursor-pointer disabled:opacity-50"
+              className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white transition-all cursor-pointer disabled:opacity-50 active:scale-95 shadow-md shadow-emerald-500/20"
+              title="Send to Copilot"
             >
               <Send className="w-3.5 h-3.5" />
             </button>
@@ -1604,11 +1377,10 @@ export default function SequenceBuilder() {
 
       {/* Link Insertion Modal */}
       {showLinkModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 select-none">
           <div className="w-full max-w-sm bg-[#171717] border border-white/[0.12] rounded-2xl shadow-2xl p-5 space-y-4 animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Link2 className="w-4 h-4 text-emerald-400" />
                 <span>Insert Hyperlink</span>
               </h3>
               <button onClick={() => setShowLinkModal(false)} className="text-slate-400 hover:text-white">
@@ -1624,7 +1396,7 @@ export default function SequenceBuilder() {
                   value={linkText}
                   onChange={(e) => setLinkText(e.target.value)}
                   placeholder="e.g. Schedule a 10-minute demo"
-                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-500"
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-500 select-text"
                 />
               </div>
 
@@ -1635,7 +1407,7 @@ export default function SequenceBuilder() {
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   placeholder="https://reachops.io/demo"
-                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-500"
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-emerald-500 select-text"
                 />
               </div>
             </div>
@@ -1662,7 +1434,7 @@ export default function SequenceBuilder() {
 
       {/* Deliverability & Spam Audit Modal */}
       {showSpamAuditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 select-none">
           <div className="w-full max-w-md bg-[#171717] border border-white/[0.12] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div className="h-14 border-b border-white/[0.08] px-5 flex items-center justify-between bg-white/[0.02]">
               <div className="flex items-center gap-2.5">

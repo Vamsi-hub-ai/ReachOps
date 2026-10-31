@@ -210,7 +210,8 @@ export default function EmailAccounts() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="h-10 px-3.5 pr-8 bg-white/[0.04] border border-white/[0.09] hover:border-white/[0.16] rounded-xl text-xs font-semibold text-slate-300 hover:text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer transition-colors"
+              style={{ colorScheme: 'dark' }}
+              className="h-10 px-3.5 pr-8 bg-[#171717] border border-white/[0.09] hover:border-white/[0.16] rounded-xl text-xs font-semibold text-slate-300 hover:text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer transition-colors [&>option]:bg-[#171717] [&>option]:text-white"
             >
               <option value="ALL" className="bg-[#171717] text-white">Type: All</option>
               <option value="GOOGLE" className="bg-[#171717] text-white">Google Workspace</option>
@@ -225,7 +226,8 @@ export default function EmailAccounts() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-10 px-3.5 pr-8 bg-white/[0.04] border border-white/[0.09] hover:border-white/[0.16] rounded-xl text-xs font-semibold text-slate-300 hover:text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer transition-colors"
+              style={{ colorScheme: 'dark' }}
+              className="h-10 px-3.5 pr-8 bg-[#171717] border border-white/[0.09] hover:border-white/[0.16] rounded-xl text-xs font-semibold text-slate-300 hover:text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer transition-colors [&>option]:bg-[#171717] [&>option]:text-white"
             >
               <option value="ALL" className="bg-[#171717] text-white">Status: All</option>
               <option value="HEALTHY" className="bg-[#171717] text-white">Healthy</option>

@@ -140,15 +140,15 @@ async function seed() {
                 stepNumber: 1,
                 delayDays: 0,
                 subject: 'Quick question about {{company}} B2B pipeline',
-                bodyHtml: '<p>Hi {{firstName}},</p><p>Saw what your team is building at {{company}}. We help B2B teams accelerate outbound reply rates by 3.4x using automated mailbox warmup and provider matching.</p><p>Worth a quick 5-min intro this Thursday?</p><p>Best,<br>Sathish</p>',
-                bodyText: 'Hi {{firstName}},\n\nSaw what your team is building at {{company}}. We help B2B teams accelerate outbound reply rates by 3.4x using automated mailbox warmup and provider matching.\n\nWorth a quick 5-min intro this Thursday?\n\nBest,\nSathish',
+                bodyHtml: '<p>Hi {{firstName}},</p><p>Saw what your team is building at {{company}}. We help B2B teams accelerate outbound reply rates by 3.4x using automated mailbox warmup and provider matching.</p><p>Worth a quick 5-min intro this Thursday?</p><p>Best,<br>Vamsi</p>',
+                bodyText: 'Hi {{firstName}},\n\nSaw what your team is building at {{company}}. We help B2B teams accelerate outbound reply rates by 3.4x using automated mailbox warmup and provider matching.\n\nWorth a quick 5-min intro this Thursday?\n\nBest,\nVamsi',
               },
               {
                 stepNumber: 2,
                 delayDays: 2,
                 subject: 'Re: Quick question about {{company}} B2B pipeline',
-                bodyHtml: '<p>Hey {{firstName}},</p><p>Following up on my previous note. Did you have a moment to review this?</p><p>Cheers,<br>Sathish</p>',
-                bodyText: 'Hey {{firstName}},\n\nFollowing up on my previous note. Did you have a moment to review this?\n\nCheers,\nSathish',
+                bodyHtml: '<p>Hey {{firstName}},</p><p>Following up on my previous note. Did you have a moment to review this?</p><p>Cheers,<br>Vamsi</p>',
+                bodyText: 'Hey {{firstName}},\n\nFollowing up on my previous note. Did you have a moment to review this?\n\nCheers,\nVamsi',
               }
             ]
           }

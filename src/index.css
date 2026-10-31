@@ -59,6 +59,25 @@
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.25);
   }
+
+  /* Universal Dark Form Controls & Dropdown Lists Fix */
+  select,
+  select option,
+  select optgroup {
+    color-scheme: dark !important;
+    background-color: #171717 !important;
+    color: #F8FAFC !important;
+  }
+  select option:checked,
+  select option:hover {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+  }
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    color-scheme: dark !important;
+  }
 }
 
 /* Atmospheric Forest Green & Crimson Aurora Background matching user screenshot */
@@ -123,6 +142,56 @@
 }
 .btn-reachops-emerald:active {
   transform: translateY(0);
+}
+
+/* High-Contrast ReachOps Email Thread Slide Bar (Always Visible) */
+.email-thread-slidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #10b981 rgba(0, 0, 0, 0.5);
+}
+.email-thread-slidebar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.email-thread-slidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 9999px;
+  margin: 6px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.email-thread-slidebar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border-radius: 9999px;
+  border: 2px solid rgba(16, 22, 19, 0.9);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+}
+.email-thread-slidebar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.85);
+}
+
+/* Light Canvas Mode Slide Bar */
+.email-thread-slidebar-light {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+.email-thread-slidebar-light::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.email-thread-slidebar-light::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+  margin: 6px 0;
+  border: 1px solid #e2e8f0;
+}
+.email-thread-slidebar-light::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+}
+.email-thread-slidebar-light::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 /* Hide scrollbar utility */

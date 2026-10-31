@@ -3,6 +3,7 @@ import {
   Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, 
   X, Check, Sparkles, CalendarCheck 
 } from 'lucide-react';
+import { TIMEZONES } from '@/lib/timezones';
 
 interface ScheduleFollowUpModalProps {
   isOpen: boolean;
@@ -543,13 +544,19 @@ export default function ScheduleFollowUpModal({
             <select
               value={selectedTimezone}
               onChange={(e) => setSelectedTimezone(e.target.value)}
-              className="bg-[#171717] border border-white/[0.1] text-slate-300 text-[10px] rounded-lg px-2 py-0.5 outline-none cursor-pointer [color-scheme:dark]"
+              style={{ colorScheme: 'dark' }}
+              className="bg-[#171717] border border-white/[0.1] text-slate-300 text-[10px] rounded-lg px-2 py-0.5 outline-none cursor-pointer max-w-[200px] truncate [&>option]:bg-[#171717] [&>option]:text-white"
             >
-              <option value="UTC">UTC</option>
-              <option value="America/New_York">Eastern Time (ET)</option>
-              <option value="America/Chicago">Central Time (CT)</option>
-              <option value="America/Los_Angeles">Pacific Time (PT)</option>
-              <option value="Europe/London">London (GMT/BST)</option>
+              {!TIMEZONES.some(tz => tz.value === selectedTimezone || tz.label === selectedTimezone) && (
+                <option value={selectedTimezone} className="bg-[#171717] text-white">
+                  {selectedTimezone}
+                </option>
+              )}
+              {TIMEZONES.map((tz) => (
+                <option key={tz.value} value={tz.value} className="bg-[#171717] text-white">
+                  {tz.label}
+                </option>
+              ))}
             </select>
           </div>
           

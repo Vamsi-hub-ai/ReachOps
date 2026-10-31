@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X, Send, ShieldCheck, CheckCircle2, AlertTriangle,
   Monitor, Smartphone, Code, Eye, RefreshCw,
   Layers, ChevronDown, Check, User, Mail, Sparkles,
-  ExternalLink, Info, CornerDownRight, HelpCircle
+  ExternalLink, Info, CornerDownRight, HelpCircle,
+  Sun, Moon
 } from 'lucide-react';
 import { analyzeEmailDeliverability } from '@/lib/deliverability';
 
@@ -117,6 +118,14 @@ export default function EmailTestLabModal({
     initialStepId || (steps[0]?.id ?? 'step-1')
   );
 
+  // Synchronize selectedStepId with initialStepId when modal opens or initialStepId changes
+  useEffect(() => {
+    if (initialStepId) {
+      setSelectedStepId(initialStepId);
+      setExpandQuotedThread(true);
+    }
+  }, [initialStepId, isOpen]);
+
   // Thread Simulation Mode: 'thread' (Gmail/Outlook conversation view) vs 'single' (only this step)
   const [threadMode, setThreadMode] = useState<'thread' | 'single'>('thread');
   const [expandQuotedThread, setExpandQuotedThread] = useState(true);
@@ -124,6 +133,10 @@ export default function EmailTestLabModal({
   // Device & Render Modes
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'mobile'>('desktop');
   const [renderMode, setRenderMode] = useState<'visual' | 'html'>('visual');
+  const [canvasTheme, setCanvasTheme] = useState<'dark' | 'light'>('dark');
+
+  // Scroll Container Ref to guarantee top visibility on step change
+  const emailScrollRef = useRef<HTMLDivElement>(null);
 
   // Connected sender accounts
   const [senderAccounts, setSenderAccounts] = useState<ConnectedMailbox[]>([
@@ -236,6 +249,32 @@ export default function EmailTestLabModal({
   const selectedSender =
     senderAccounts.find((a) => a.id === selectedSenderId) || senderAccounts[0];
 
+  // Active step slider state for thread navigation
+  const [activeSlideStep, setActiveSlideStep] = useState<number>(currentStep.stepNumber);
+
+  // Helper to smoothly slide to a specific step in the thread
+  const handleSlideToStep = (stepNumber: number) => {
+    setActiveSlideStep(stepNumber);
+    if (stepNumber === currentStep.stepNumber) {
+      emailScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const targetEl = document.getElementById(`thread-step-${stepNumber}`);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  // Automatically scroll email preview back to top when switching steps or changing thread mode
+  useEffect(() => {
+    if (currentStep) {
+      setActiveSlideStep(currentStep.stepNumber);
+    }
+    if (emailScrollRef.current) {
+      emailScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedStepId, threadMode, canvasTheme, currentStep?.stepNumber]);
+
   // Helper to resolve variables into string
   const interpolate = (template: string): string => {
     if (!template) return '';
@@ -272,25 +311,42 @@ export default function EmailTestLabModal({
     return interpolate(currentStep.body || '');
   }, [currentStep, variables, selectedSender]);
 
-  // Compute previous steps history for thread simulation
+  // Compute previous steps history for Outlook email trail simulation
   const previousThreadSteps = useMemo(() => {
     if (currentStepIndex <= 0) return [];
-    return steps.slice(0, currentStepIndex).map((s, idx) => {
+    
+    // In Outlook email trails, the most recent prior email appears first in the trail
+    return steps.slice(0, currentStepIndex).reverse().map((s, revIdx) => {
+      // Calculate true index from origin (0 = initial outreach)
+      const origIdx = currentStepIndex - 1 - revIdx;
       const stepDate = new Date();
-      stepDate.setDate(stepDate.getDate() - (currentStepIndex - idx) * 2);
-      const dateStr = stepDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+      stepDate.setDate(stepDate.getDate() - (currentStepIndex - origIdx) * 2);
+      
+      const weekday = stepDate.toLocaleDateString('en-US', { weekday: 'long' });
+      const month = stepDate.toLocaleDateString('en-US', { month: 'long' });
+      const day = stepDate.getDate();
+      const year = stepDate.getFullYear();
+      const hours = 10 + (origIdx % 3);
+      const minutes = 15 + (origIdx * 19) % 45;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHour = hours > 12 ? hours - 12 : hours;
+      const formattedMinute = minutes < 10 ? `0${minutes}` : `${minutes}`;
+      
+      // Formatted exactly like Outlook: Wednesday, April 29, 2026 12:34 PM
+      const formattedOutlookSent = `${weekday}, ${month} ${day}, ${year} ${formattedHour}:${formattedMinute} ${ampm}`;
+
       return {
-        stepNumber: s.stepNumber || idx + 1,
-        subject: interpolate(s.subject || steps[0]?.subject || 'Outreach Discussion'),
+        stepNumber: s.stepNumber || origIdx + 1,
+        senderName: selectedSender?.displayName || variables.senderName || 'Vamsi Pallela',
+        senderEmail: selectedSender?.email || 'vamsipallela31@gmail.com',
+        recipientName: `${variables.firstName} ${variables.lastName}`.trim() || 'Sarah Connor',
+        recipientEmail: sendToEmail || `${(variables.firstName || 'sarah').toLowerCase()}@acme-corp.com`,
+        subject: interpolate(s.subject || steps[0]?.subject || 'Scaling Acme Corp outreach efficiency'),
         body: interpolate(s.body || ''),
-        sentAt: `${dateStr} at 10:${15 + idx * 5} AM`,
+        sentAt: formattedOutlookSent,
       };
     });
-  }, [currentStepIndex, steps, variables, selectedSender]);
+  }, [currentStepIndex, steps, variables, selectedSender, sendToEmail]);
 
   // Deliverability Analysis
   const deliverabilityAudit = useMemo(() => {
@@ -495,7 +551,11 @@ export default function EmailTestLabModal({
                     <button
                       key={s.id}
                       type="button"
-                      onClick={() => setSelectedStepId(s.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedStepId(s.id);
+                        setExpandQuotedThread(true);
+                      }}
                       className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                         isSelected
                           ? 'bg-[#10b981]/15 border-[#10b981] text-white shadow-sm'
@@ -539,8 +599,8 @@ export default function EmailTestLabModal({
                     <CornerDownRight className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Follow-up Thread Mode</span>
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
-                    Gmail Style
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono font-bold border border-blue-500/30">
+                    Outlook Style
                   </span>
                 </div>
 
@@ -554,7 +614,7 @@ export default function EmailTestLabModal({
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    🧵 Prospect Thread
+                    🧵 Outlook Trail
                   </button>
                   <button
                     type="button"
@@ -570,8 +630,8 @@ export default function EmailTestLabModal({
                 </div>
                 <p className="text-[10px] text-slate-400 leading-tight">
                   {threadMode === 'thread'
-                    ? 'Simulates how prospect sees this follow-up stacked on top of your previous messages in their inbox thread.'
-                    : 'Previews only this step email isolated without previous thread history.'}
+                    ? 'Simulates how prospects see this follow-up stacked in Outlook with standard From/Sent/To/Subject trail headers.'
+                    : 'Previews only this step email isolated without previous email history.'}
                 </p>
               </div>
             )}
@@ -696,14 +756,14 @@ export default function EmailTestLabModal({
           </div>
 
           {/* RIGHT PANEL: Interactive Email Client Canvas & Dispatch Deck */}
-          <div className="flex-1 flex flex-col justify-between overflow-hidden bg-[#101713]/90 p-4 sm:p-6 text-left">
+          <div className="flex-1 flex flex-col justify-between overflow-hidden bg-[#070b09] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(16,185,129,0.07),transparent_70%)] p-4 sm:p-5 text-left">
             
             {/* Top Recipient & Dispatch Bar */}
-            <div className="space-y-3 pb-4 border-b border-white/[0.08] flex-shrink-0">
+            <div className="space-y-3 pb-3 border-b border-white/[0.08] flex-shrink-0">
               
               {/* Recipient Input & Send Test Email Row */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 justify-between">
-                <div className="flex-1 flex items-center gap-2 bg-[#171717] border border-white/[0.1] rounded-xl px-3 py-1.5 focus-within:border-emerald-500 transition-all">
+                <div className="flex-1 flex items-center gap-2 bg-[#0e1411] border border-white/[0.1] rounded-xl px-3 py-1.5 focus-within:border-emerald-500 transition-all shadow-inner">
                   <span className="text-xs font-bold text-slate-400 shrink-0">Send To:</span>
                   <input
                     type="email"
@@ -820,65 +880,240 @@ export default function EmailTestLabModal({
               )}
             </div>
 
-            {/* Email Client Canvas Container (Supports Desktop / Mobile frames) */}
-            <div className="flex-1 overflow-y-auto py-4 flex justify-center">
-              
+            {/* Email Client Canvas Container (With pinned headers, active slide bar, and full thread simulation) */}
+            <div className="flex-1 min-h-0 py-2 px-1 flex justify-center items-stretch overflow-hidden">
               <div
-                className={`w-full transition-all duration-300 ${
+                className={`w-full transition-all duration-200 h-full flex flex-col rounded-2xl border overflow-hidden ${
                   deviceMode === 'mobile'
-                    ? 'max-w-sm rounded-[36px] border-[6px] border-[#222] shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden bg-[#171717]'
-                    : 'max-w-3xl rounded-2xl border border-white/[0.1] shadow-2xl bg-[#171717]/90'
+                    ? `max-w-sm rounded-[40px] border-[6px] border-[#222824] shadow-[0_20px_60px_rgba(0,0,0,0.95)] ${
+                        canvasTheme === 'dark' ? 'bg-[#0f1411] text-slate-100' : 'bg-white text-slate-900'
+                      }`
+                    : `max-w-3xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] ${
+                        canvasTheme === 'dark'
+                          ? 'bg-[#101613] border-white/[0.12] text-slate-100 ring-1 ring-emerald-500/10'
+                          : 'bg-white border-slate-200 text-slate-900 shadow-xl'
+                      }`
                 }`}
               >
                 {/* Mobile Phone Device Top Header Simulation */}
                 {deviceMode === 'mobile' && (
-                  <div className="bg-[#1f1f1f] px-5 py-2 flex items-center justify-between text-[11px] font-semibold text-slate-300 border-b border-white/[0.06]">
+                  <div className={`px-6 py-2.5 flex items-center justify-between text-[11px] font-semibold border-b flex-shrink-0 ${
+                    canvasTheme === 'dark'
+                      ? 'bg-[#161d18] text-slate-300 border-white/[0.08]'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
                     <span>9:41</span>
-                    <div className="w-16 h-3 bg-black rounded-full" />
+                    <div className="w-16 h-3.5 bg-black rounded-full" />
                     <span>5G 100%</span>
                   </div>
                 )}
 
-                {/* Email Client Top Meta Header */}
-                <div className="p-4 sm:p-5 border-b border-white/[0.08] bg-white/[0.015] space-y-2">
+                {/* Desktop Webmail Window Chrome Bar (Pinned at top) */}
+                {deviceMode === 'desktop' && (
+                  <div className={`px-4 py-2.5 flex items-center justify-between border-b text-xs flex-shrink-0 ${
+                    canvasTheme === 'dark'
+                      ? 'bg-[#151d18] border-white/[0.08] text-slate-300'
+                      : 'bg-slate-100 border-slate-200 text-slate-700'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-[#ff5f56] inline-block shadow-sm" />
+                        <span className="w-3 h-3 rounded-full bg-[#ffbd2e] inline-block shadow-sm" />
+                        <span className="w-3 h-3 rounded-full bg-[#27c93f] inline-block shadow-sm" />
+                      </div>
+                      <span className="ml-2 font-semibold text-[11px] opacity-75">
+                        {canvasTheme === 'dark'
+                          ? 'Microsoft Outlook 365 (Dark Mode) Trail Simulation'
+                          : 'Microsoft Outlook Desktop (Standard) Email Trail Simulation'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* 1-Click Dark / Light Canvas Mode Switcher */}
+                      <button
+                        type="button"
+                        onClick={() => setCanvasTheme(canvasTheme === 'dark' ? 'light' : 'dark')}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          canvasTheme === 'dark'
+                            ? 'bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/[0.1]'
+                            : 'bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300'
+                        }`}
+                        title="Toggle Dark Mode vs Real-World White Inbox Canvas"
+                      >
+                        {canvasTheme === 'dark' ? (
+                          <>
+                            <Sun className="w-3 h-3 text-amber-400" />
+                            <span>Preview Light Canvas</span>
+                          </>
+                        ) : (
+                          <>
+                            <Moon className="w-3 h-3 text-emerald-600" />
+                            <span>Preview Dark Canvas</span>
+                          </>
+                        )}
+                      </button>
+
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        Live Preview
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Email Client Top Meta Header (Pinned at top) */}
+                <div className={`p-4 sm:p-5 border-b space-y-3 flex-shrink-0 ${
+                  canvasTheme === 'dark'
+                    ? 'border-white/[0.08] bg-[#131b16]'
+                    : 'border-slate-200 bg-slate-50'
+                }`}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <h3 className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug">
-                        {renderedSubject}
-                      </h3>
-                      <div className="text-xs text-slate-400 space-y-0.5">
-                        <p>
-                          From:{' '}
-                          <span className="text-slate-200 font-medium">
-                            {selectedSender?.displayName || variables.senderName} &lt;{selectedSender?.email}&gt;
-                          </span>
-                        </p>
-                        <p>
-                          To:{' '}
-                          <span className="text-slate-200 font-medium">
-                            {variables.firstName} {variables.lastName} &lt;{sendToEmail}&gt;
-                          </span>
-                        </p>
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          Step #{currentStep.stepNumber} • {currentStepIndex === 0 ? 'Cold Outreach' : `Follow-Up (+${currentStep.waitValue || currentStep.waitDays || 2}d)`}
+                        </span>
+                        <h3 className={`text-sm sm:text-base font-bold tracking-tight leading-snug truncate ${
+                          canvasTheme === 'dark' ? 'text-white' : 'text-slate-900'
+                        }`}>
+                          {renderedSubject}
+                        </h3>
+                      </div>
+
+                      {/* Sender Avatar & Metadata */}
+                      <div className="flex items-center gap-3 pt-1">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#10b981] to-[#059669] text-white font-bold text-xs flex items-center justify-center shrink-0 ring-2 ring-emerald-400/30 shadow-sm">
+                          {(selectedSender?.displayName || variables.senderName || 'VP')
+                            .split(' ')
+                            .map((p) => p[0])
+                            .slice(0, 2)
+                            .join('')
+                            .toUpperCase()}
+                        </div>
+                        <div className="text-xs space-y-0.5 min-w-0 flex-1">
+                          <p className={`font-semibold truncate ${
+                            canvasTheme === 'dark' ? 'text-slate-100' : 'text-slate-800'
+                          }`}>
+                            {selectedSender?.displayName || variables.senderName}{' '}
+                            <span className={canvasTheme === 'dark' ? 'text-slate-400 font-normal' : 'text-slate-500 font-normal'}>
+                              &lt;{selectedSender?.email}&gt;
+                            </span>
+                          </p>
+                          <p className={`truncate text-[11px] ${
+                            canvasTheme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                          }`}>
+                            To: <span className="font-medium">{variables.firstName} {variables.lastName}</span> &lt;{sendToEmail}&gt;
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-slate-500 font-mono text-right shrink-0">
-                      <span>Just now</span>
-                      <p className="text-emerald-400 font-semibold">{placementPrediction.label}</p>
+                    <div className="text-[10px] font-mono text-right shrink-0 space-y-1">
+                      <span className={canvasTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
+                        Today, 10:20 AM
+                      </span>
+                      <p className="text-emerald-400 font-semibold flex items-center gap-1 justify-end">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        {placementPrediction.label}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Email Body Content */}
-                <div className="p-4 sm:p-6 text-left space-y-4 font-sans text-slate-200 text-xs sm:text-sm leading-relaxed">
+                {/* THREAD SLIDE NAVIGATOR BAR: Allows sliding through all emails in the thread */}
+                {currentStepIndex > 0 && threadMode === 'thread' && (
+                  <div className={`px-4 py-2 border-b flex items-center justify-between gap-3 text-xs flex-wrap flex-shrink-0 ${
+                    canvasTheme === 'dark'
+                      ? 'bg-[#0d1410] border-white/[0.08] text-slate-300'
+                      : 'bg-slate-100 border-slate-200 text-slate-700'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[11px] uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Outlook Email Trail</span>
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                        {previousThreadSteps.length + 1} Messages in Trail
+                      </span>
+                    </div>
+
+                    {/* Interactive Thread Step Slider ("Slide Bar") */}
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                      <div className={`flex items-center gap-2 px-2.5 py-1 rounded-xl border ${
+                        canvasTheme === 'dark' ? 'bg-black/50 border-white/[0.08]' : 'bg-white border-slate-300'
+                      }`}>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                          Slide Trail:
+                        </span>
+                        <input
+                          type="range"
+                          min="1"
+                          max={currentStep.stepNumber}
+                          value={activeSlideStep}
+                          onChange={(e) => handleSlideToStep(parseInt(e.target.value))}
+                          className="w-20 sm:w-28 accent-emerald-500 cursor-pointer h-1.5 bg-white/20 rounded-lg"
+                          title="Slide bar to navigate through the email thread steps"
+                        />
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0">
+                          Step {activeSlideStep}/{currentStep.stepNumber}
+                        </span>
+                      </div>
+
+                      {/* Quick Jump Slide Pills */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSlideToStep(currentStep.stepNumber)}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                            activeSlideStep === currentStep.stepNumber
+                              ? 'bg-emerald-500 text-black font-bold shadow-sm'
+                              : canvasTheme === 'dark'
+                              ? 'bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/[0.1]'
+                              : 'bg-white hover:bg-slate-200 text-slate-800 border border-slate-300'
+                          }`}
+                          title="Slide to Active Follow-up (Top)"
+                        >
+                          <span>Step #{currentStep.stepNumber} (Newest)</span>
+                        </button>
+
+                        {previousThreadSteps.map((p) => (
+                          <button
+                            key={p.stepNumber}
+                            type="button"
+                            onClick={() => handleSlideToStep(p.stepNumber)}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                              activeSlideStep === p.stepNumber
+                                ? 'bg-emerald-500 text-black font-bold shadow-sm'
+                                : canvasTheme === 'dark'
+                                ? 'bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/[0.1]'
+                                : 'bg-white hover:bg-slate-200 text-slate-800 border border-slate-300'
+                            }`}
+                            title={`Slide to Step #${p.stepNumber} in thread`}
+                          >
+                            <span>Step #{p.stepNumber}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Email Body & Full Quoted Thread Scrollable Pane (With prominent slide bar) */}
+                <div
+                  ref={emailScrollRef}
+                  className={`flex-1 min-h-0 overflow-y-scroll p-5 sm:p-6 text-left space-y-4 font-sans text-xs sm:text-sm leading-relaxed ${
+                    canvasTheme === 'dark'
+                      ? 'text-slate-100 bg-[#0f1411] email-thread-slidebar'
+                      : 'text-slate-800 bg-white email-thread-slidebar-light'
+                  }`}
+                >
                   
                   {renderMode === 'html' ? (
-                    <pre className="p-4 rounded-xl bg-black/60 border border-white/[0.08] text-emerald-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                    <pre className="p-4 rounded-xl bg-black/80 border border-white/[0.1] text-emerald-300 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
                       {renderedBody}
                     </pre>
                   ) : (
                     <div
-                      className="whitespace-pre-line break-words leading-relaxed selection:bg-emerald-500 selection:text-black"
+                      className="whitespace-pre-line break-words leading-relaxed selection:bg-emerald-500 selection:text-black font-sans"
                       dangerouslySetInnerHTML={{
                         __html: renderedBody.includes('<p>') || renderedBody.includes('<br')
                           ? renderedBody
@@ -887,44 +1122,133 @@ export default function EmailTestLabModal({
                     />
                   )}
 
-                  {/* THREAD SIMULATION: If Step 2+ and Thread Mode is active, show quoted historical messages! */}
-                  {threadMode === 'thread' && previousThreadSteps.length > 0 && (
-                    <div className="mt-8 pt-4 border-t border-white/[0.1] space-y-3">
-                      <div className="flex items-center justify-between text-xs text-slate-400">
-                        <button
-                          type="button"
-                          onClick={() => setExpandQuotedThread(!expandQuotedThread)}
-                          className="flex items-center gap-1.5 text-slate-400 hover:text-white font-semibold transition-colors cursor-pointer"
-                        >
-                          <span className="w-5 h-4 flex items-center justify-center rounded bg-white/[0.08] text-[10px] font-mono">
-                            ...
-                          </span>
-                          <span>
-                            {expandQuotedThread ? 'Hide' : 'Show'} quoted prospect thread ({previousThreadSteps.length} earlier{' '}
-                            {previousThreadSteps.length === 1 ? 'message' : 'messages'})
-                          </span>
-                        </button>
-                        <span className="text-[10px] text-slate-500 font-mono">Conversation History</span>
-                      </div>
-
-                      {expandQuotedThread && (
-                        <div className="space-y-4 pl-3 border-l-2 border-[#10b981]/50 text-slate-300 text-xs">
-                          {previousThreadSteps.map((prev, pIdx) => (
-                            <div key={pIdx} className="space-y-1.5 bg-white/[0.015] p-3 rounded-xl border border-white/[0.05]">
-                              <p className="text-[11px] font-bold text-slate-400">
-                                On {prev.sentAt}, {selectedSender?.displayName || variables.senderName} wrote:
-                              </p>
-                              <div
-                                className="text-slate-300 text-xs whitespace-pre-line leading-relaxed"
-                                dangerouslySetInnerHTML={{
-                                  __html: prev.body.includes('<p>') || prev.body.includes('<br')
-                                    ? prev.body
-                                    : prev.body.replace(/\n/g, '<br/>'),
-                                }}
-                              />
-                            </div>
-                          ))}
+                  {/* THREAD SIMULATION: If Thread Mode is active, show Origin context or full quoted historical messages */}
+                  {threadMode === 'thread' && (
+                    <div className={`mt-6 pt-4 border-t space-y-3 ${
+                      canvasTheme === 'dark' ? 'border-white/[0.1]' : 'border-slate-200'
+                    }`}>
+                      {previousThreadSteps.length === 0 ? (
+                        <div className={`p-4 rounded-xl border flex items-start gap-3 ${
+                          canvasTheme === 'dark'
+                            ? 'bg-[#0a0f0c] border-emerald-500/20 text-slate-300'
+                            : 'bg-slate-50 border-slate-200 text-slate-700'
+                        }`}>
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <Mail className="w-4 h-4" />
+                          </div>
+                          <div className="text-xs">
+                            <p className={`font-bold flex items-center gap-2 ${
+                              canvasTheme === 'dark' ? 'text-white' : 'text-slate-900'
+                            }`}>
+                              <span>Thread Initiator (Origin Message)</span>
+                              <span className="text-[10px] text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full font-mono">Day 0</span>
+                            </p>
+                            <p className={`text-[11px] mt-0.5 leading-relaxed ${
+                              canvasTheme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                            }`}>
+                              This cold email begins the conversation thread in the prospect's inbox. Click <strong className="text-emerald-500 cursor-pointer hover:underline" onClick={() => steps[1] && setSelectedStepId(steps[1].id)}>Follow-Up Step #2</strong> on the left to preview how future follow-up messages stack directly on top of this email.
+                            </p>
+                          </div>
                         </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between text-xs flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandQuotedThread(!expandQuotedThread);
+                              }}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                                canvasTheme === 'dark'
+                                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                              }`}
+                              title="Toggle quoted conversation history visibility"
+                            >
+                              <span className="w-5 h-4 flex items-center justify-center rounded bg-emerald-500/20 text-[10px] font-mono font-bold text-emerald-400">
+                                ...
+                              </span>
+                              <span>
+                                {expandQuotedThread ? 'Hide' : 'Show'} Outlook email trail ({previousThreadSteps.length} earlier{' '}
+                                {previousThreadSteps.length === 1 ? 'message' : 'messages'})
+                              </span>
+                            </button>
+
+                            <span className="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 font-bold">
+                              Outlook Trail Attached ({currentStepIndex} prior {currentStepIndex === 1 ? 'message' : 'messages'})
+                            </span>
+                          </div>
+
+                          {expandQuotedThread && (
+                            <div className="space-y-6 animate-in fade-in duration-150 mt-4">
+                              {previousThreadSteps.map((prev, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  id={`thread-step-${prev.stepNumber}`}
+                                  className="pt-2 select-text"
+                                >
+                                  {/* Outlook Email Trail Horizontal Divider (Exact match to Microsoft Outlook) */}
+                                  <div className={`border-t my-5 ${
+                                    canvasTheme === 'dark' ? 'border-white/[0.2]' : 'border-slate-300'
+                                  }`} />
+
+                                  {/* Outlook Original Message Block Header */}
+                                  <div className={`font-sans text-xs sm:text-[13px] leading-relaxed space-y-1 ${
+                                    canvasTheme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                                  }`}>
+                                    <div className="flex items-center justify-between">
+                                      <p>
+                                        <strong className={`font-bold ${canvasTheme === 'dark' ? 'text-white' : 'text-slate-900'}`}>From:</strong>{' '}
+                                        <span>{prev.senderName}</span>{' '}
+                                        <span className={canvasTheme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>&lt;{prev.senderEmail}&gt;</span>
+                                      </p>
+                                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold ${
+                                        canvasTheme === 'dark'
+                                          ? 'bg-white/[0.08] text-slate-300 border border-white/[0.1]'
+                                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                      }`}>
+                                        Step #{prev.stepNumber}
+                                      </span>
+                                    </div>
+
+                                    <p>
+                                      <strong className={`font-bold ${canvasTheme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Sent:</strong>{' '}
+                                      <span className={canvasTheme === 'dark' ? 'text-slate-200' : 'text-slate-800'}>{prev.sentAt}</span>
+                                    </p>
+
+                                    <p>
+                                      <strong className={`font-bold ${canvasTheme === 'dark' ? 'text-white' : 'text-slate-900'}`}>To:</strong>{' '}
+                                      <a
+                                        href={`mailto:${prev.recipientEmail}`}
+                                        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 underline underline-offset-2"
+                                      >
+                                        {prev.recipientEmail}
+                                      </a>
+                                    </p>
+
+                                    <p>
+                                      <strong className={`font-bold ${canvasTheme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Subject:</strong>{' '}
+                                      <span className={`font-normal ${canvasTheme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>{prev.subject}</span>
+                                    </p>
+                                  </div>
+
+                                  {/* Previous Email Content (Outlook Body) */}
+                                  <div
+                                    className={`font-sans text-xs sm:text-sm leading-relaxed whitespace-pre-line mt-4 ${
+                                      canvasTheme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                                    }`}
+                                    dangerouslySetInnerHTML={{
+                                      __html: prev.body.includes('<p>') || prev.body.includes('<br')
+                                        ? prev.body
+                                        : prev.body.replace(/\n/g, '<br/>'),
+                                    }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
@@ -933,12 +1257,15 @@ export default function EmailTestLabModal({
 
                 {/* Mobile Bottom Home Bar Indicator */}
                 {deviceMode === 'mobile' && (
-                  <div className="py-2 flex justify-center bg-[#171717]">
-                    <div className="w-28 h-1 bg-white/20 rounded-full" />
+                  <div className={`py-2.5 flex justify-center flex-shrink-0 ${
+                    canvasTheme === 'dark' ? 'bg-[#0f1411]' : 'bg-white'
+                  }`}>
+                    <div className={`w-28 h-1 rounded-full ${
+                      canvasTheme === 'dark' ? 'bg-white/20' : 'bg-slate-300'
+                    }`} />
                   </div>
                 )}
               </div>
-
             </div>
 
             {/* Bottom Status Ribbon */}
@@ -962,3 +1289,4 @@ export default function EmailTestLabModal({
     </div>
   );
 }
+

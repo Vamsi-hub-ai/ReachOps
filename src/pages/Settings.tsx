@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import GoogleSheetsManagerModal from '@/components/google-sheets/GoogleSheetsManagerModal';
+import { TIMEZONES } from '@/lib/timezones';
 import { User, CreditCard, Bell, Key, Shield, CheckCircle2, Blocks, 
   Webhook, MessageSquare, Users, UserPlus, MoreHorizontal, Plus, 
   Trash2, Copy, Eye, EyeOff, Check, Send, Smartphone, 
@@ -439,13 +440,19 @@ export default function Settings() {
                     <select
                       value={profile.timezone}
                       onChange={(e) => setProfile({ ...profile, timezone: e.target.value })}
-                      className="flex-1 h-11 bg-[#141520] border border-[#26283b] text-white rounded-md px-3 text-sm focus:outline-none focus:border-[#9FA0FF]"
+                      style={{ colorScheme: 'dark' }}
+                      className="flex-1 h-11 bg-[#171717] border border-[#26283b] text-white rounded-md px-3 text-sm focus:outline-none focus:border-[#9FA0FF] [&>option]:bg-[#171717] [&>option]:text-white cursor-pointer"
                     >
-                      <option value="Chennai, Kolkata, Mumbai, New Delhi (UTC+05:30)">Chennai, Kolkata, Mumbai, New Delhi (UTC+05:30)</option>
-                      <option value="Eastern Time (US & Canada) (UTC-05:00)">Eastern Time (US & Canada) (UTC-05:00)</option>
-                      <option value="Pacific Time (US & Canada) (UTC-08:00)">Pacific Time (US & Canada) (UTC-08:00)</option>
-                      <option value="Greenwich Mean Time (UTC+00:00)">Greenwich Mean Time (UTC+00:00)</option>
-                      <option value="Central European Time (UTC+01:00)">Central European Time (UTC+01:00)</option>
+                      {!TIMEZONES.some(tz => tz.label === profile.timezone || tz.value === profile.timezone) && (
+                        <option value={profile.timezone} className="bg-[#171717] text-white">
+                          {profile.timezone}
+                        </option>
+                      )}
+                      {TIMEZONES.map((tz) => (
+                        <option key={tz.value} value={tz.label} className="bg-[#171717] text-white">
+                          {tz.label}
+                        </option>
+                      ))}
                     </select>
                     <Globe className="w-5 h-5 text-slate-400" />
                   </div>
@@ -880,11 +887,12 @@ export default function Settings() {
                                   setTeam(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
                                   showToast(`Updated ${member.name}'s role to ${newRole}`);
                                 }}
-                                className="bg-[#141520] border border-[#26283b] text-white text-xs rounded-lg px-2 py-1 focus:outline-none"
+                                style={{ colorScheme: 'dark' }}
+                                className="bg-[#171717] border border-[#26283b] text-white text-xs rounded-lg px-2 py-1 focus:outline-none [&>option]:bg-[#171717] [&>option]:text-white cursor-pointer"
                               >
-                                <option value="Admin">Admin</option>
-                                <option value="Member">Member</option>
-                                <option value="Viewer">Viewer</option>
+                                <option value="Admin" className="bg-[#171717] text-white">Admin</option>
+                                <option value="Member" className="bg-[#171717] text-white">Member</option>
+                                <option value="Viewer" className="bg-[#171717] text-white">Viewer</option>
                               </select>
                             )}
                           </td>
@@ -1075,11 +1083,12 @@ export default function Settings() {
                 <select 
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as any)}
-                  className="w-full h-10 bg-[#141520] border border-[#26283b] text-white rounded-md px-3 text-sm focus:outline-none"
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full h-10 bg-[#171717] border border-[#26283b] text-white rounded-md px-3 text-sm focus:outline-none [&>option]:bg-[#171717] [&>option]:text-white cursor-pointer"
                 >
-                  <option value="Admin">Admin (Full campaign & account access)</option>
-                  <option value="Member">Member (Create and edit sequences)</option>
-                  <option value="Viewer">Viewer (Read-only analytics)</option>
+                  <option value="Admin" className="bg-[#171717] text-white">Admin (Full campaign & account access)</option>
+                  <option value="Member" className="bg-[#171717] text-white">Member (Create and edit sequences)</option>
+                  <option value="Viewer" className="bg-[#171717] text-white">Viewer (Read-only analytics)</option>
                 </select>
               </div>
             </div>

@@ -1,11 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   ChevronDown, ChevronUp, X, Calendar, Plus, 
   Save, CheckCircle2, Sliders, ShieldCheck, 
-  Sparkles, Clock, Globe, AlertTriangle
+  Sparkles, Clock, Globe, AlertTriangle, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TIMEZONES } from '@/lib/timezones';
+
+const TIME_SLOTS = [
+  '12:00 AM', '12:30 AM', '1:00 AM', '1:30 AM', '2:00 AM', '2:30 AM',
+  '3:00 AM', '3:30 AM', '4:00 AM', '4:30 AM', '5:00 AM', '5:30 AM',
+  '6:00 AM', '6:30 AM', '7:00 AM', '7:30 AM', '8:00 AM', '8:30 AM',
+  '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+  '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM',
+  '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM',
+  '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM',
+  '9:00 PM', '9:30 PM', '10:00 PM', '10:30 PM', '11:00 PM', '11:30 PM'
+];
 
 export default function CampaignSettings() {
   const { id } = useParams<{ id: string }>();
@@ -39,13 +51,30 @@ export default function CampaignSettings() {
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [availableAccounts, setAvailableAccounts] = useState<string[]>([]);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const [accountSearchQuery, setAccountSearchQuery] = useState('');
+
+  // Real-time search filter for email accounts
+  const filteredAccounts = useMemo(() => {
+    if (!accountSearchQuery.trim()) return availableAccounts;
+    const q = accountSearchQuery.toLowerCase().trim();
+    return availableAccounts.filter((acc) => acc.toLowerCase().includes(q));
+  }, [availableAccounts, accountSearchQuery]);
 
   // 2. Schedule & Limits state
   const [scheduleName, setScheduleName] = useState('Default Schedule');
   const [sendType, setSendType] = useState('At custom times');
-  const [fromTime, setFromTime] = useState('9:30 AM');
+  const [fromTime, setFromTime] = useState('9:00 AM');
   const [toTime, setToTime] = useState('4:00 PM');
-  const [timezone, setTimezone] = useState('Chennai, Kolkata, Mumbai, New Delhi (UTC+05:30)');
+  const [timezone, setTimezone] = useState('(UTC+05:30) India Standard Time (IST) (Chennai, Kolkata, Mumbai, New Delhi, Bengaluru)');
+  
+  // Resolve timezone to formatted label in TIMEZONES if matching by value or label
+  const normalizedTimezone = useMemo(() => {
+    const match = TIMEZONES.find(
+      (tz) => tz.label === timezone || tz.value === timezone || tz.label.includes(timezone) || timezone.includes(tz.value)
+    );
+    return match ? match.label : timezone;
+  }, [timezone]);
+
   const [days, setDays] = useState({
     Sunday: false,
     Monday: true,
@@ -66,11 +95,19 @@ export default function CampaignSettings() {
       const u = localStorage.getItem('user');
       if (u) {
         const parsed = JSON.parse(u);
-        return parsed.name || parsed.email || 'Demo User';
+        const name = parsed.name || parsed.email;
+        if (name && !name.toLowerCase().includes('sathish')) return name;
       }
     } catch {}
-    return 'Demo User';
+    return 'Vamsi Pallela';
   });
+
+  // Ensure Sathish is never set as owner even if loaded from older campaign data or state
+  useEffect(() => {
+    if (owner && owner.toLowerCase().includes('sathish')) {
+      setOwner('Vamsi Pallela');
+    }
+  }, [owner]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
@@ -303,47 +340,96 @@ export default function CampaignSettings() {
 
         {accountsOpen && (
           <div className="px-6 pb-6 pt-2 space-y-4">
-            {/* Selected Accounts Pill Tags */}
-            {selectedAccounts.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                {selectedAccounts.map((acc) => (
-                  <span 
-                    key={acc}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10b981]/15 border border-[#10b981]/30 text-xs text-white font-medium shadow-sm"
+            {/* Selected Accounts Pill Tags & Inline Search/Typing Box */}
+            <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/25 transition-all">
+              {selectedAccounts.map((acc) => (
+                <span 
+                  key={acc}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10b981]/15 border border-[#10b981]/30 text-xs text-white font-medium shadow-sm animate-in fade-in"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                  <span>{acc}</span>
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeAccount(acc);
+                    }}
+                    className="text-slate-400 hover:text-rose-400 transition-colors p-0.5 ml-0.5 cursor-pointer"
+                    title="Remove account"
                   >
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                    <span>{acc}</span>
-                    <button 
-                      onClick={() => removeAccount(acc)}
-                      className="text-slate-400 hover:text-rose-400 transition-colors p-0.5 ml-0.5 cursor-pointer"
-                      title="Remove account"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+
+              {/* Inline Search / Typing Input for Email Accounts (Screenshot feature) */}
+              <div className="flex-1 min-w-[220px] flex items-center gap-2 px-1 py-0.5">
+                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <input 
+                  type="text"
+                  value={accountSearchQuery}
+                  onChange={(e) => setAccountSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (filteredAccounts.length > 0) {
+                        const target = filteredAccounts[0];
+                        if (selectedAccounts.includes(target)) {
+                          removeAccount(target);
+                        } else {
+                          addAccount(target);
+                        }
+                        setAccountSearchQuery('');
+                      }
+                    } else if (e.key === 'Backspace' && !accountSearchQuery && selectedAccounts.length > 0) {
+                      removeAccount(selectedAccounts[selectedAccounts.length - 1]);
+                    }
+                  }}
+                  placeholder={
+                    selectedAccounts.length === 0 
+                      ? "Search or type sending email ID..." 
+                      : "Type email ID to search / press Enter to toggle..."
+                  }
+                  className="w-full bg-transparent border-none text-xs text-white placeholder-slate-500 focus:outline-none"
+                />
+                {accountSearchQuery && (
+                  <button 
+                    type="button"
+                    onClick={() => setAccountSearchQuery('')}
+                    className="text-slate-400 hover:text-white p-0.5 cursor-pointer"
+                    title="Clear filter"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-            )}
+            </div>
 
             {/* In-Card Available Sending Inboxes List - Never cut off by screen overflow */}
             <div className="border border-white/[0.08] rounded-xl bg-[#080d1b]/60 overflow-hidden shadow-inner">
               <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.08] flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Available Sending Inboxes ({availableAccounts.length})
+                  Available Sending Inboxes ({filteredAccounts.length}{accountSearchQuery ? ` matching "${accountSearchQuery}"` : ''})
                 </span>
                 <div className="flex items-center gap-3">
                   <button 
                     type="button"
                     onClick={() => {
-                      if (selectedAccounts.length === availableAccounts.length) {
-                        setSelectedAccounts([]);
+                      if (filteredAccounts.length === 0) return;
+                      const allFilteredSelected = filteredAccounts.every(acc => selectedAccounts.includes(acc));
+                      if (allFilteredSelected) {
+                        setSelectedAccounts(selectedAccounts.filter(acc => !filteredAccounts.includes(acc)));
                       } else {
-                        setSelectedAccounts([...availableAccounts]);
+                        const toAdd = filteredAccounts.filter(acc => !selectedAccounts.includes(acc));
+                        setSelectedAccounts([...selectedAccounts, ...toAdd]);
                       }
                     }}
                     className="text-emerald-400 hover:text-[#B7ACFF] text-xs font-semibold hover:underline cursor-pointer transition-colors"
                   >
-                    {selectedAccounts.length === availableAccounts.length ? 'Deselect All' : 'Select All'}
+                    {filteredAccounts.length > 0 && filteredAccounts.every(acc => selectedAccounts.includes(acc))
+                      ? 'Deselect Matches' 
+                      : 'Select All'}
                   </button>
                 </div>
               </div>
@@ -358,9 +444,20 @@ export default function CampaignSettings() {
                     Connect an Email Account →
                   </a>
                 </div>
+              ) : filteredAccounts.length === 0 ? (
+                <div className="px-4 py-8 text-center text-slate-400 text-xs">
+                  <p>No sending inboxes match "{accountSearchQuery}".</p>
+                  <button
+                    type="button"
+                    onClick={() => setAccountSearchQuery('')}
+                    className="mt-2 text-emerald-400 hover:underline cursor-pointer font-medium"
+                  >
+                    Clear search query
+                  </button>
+                </div>
               ) : (
                 <div className="divide-y divide-white/[0.05] max-h-72 overflow-y-auto">
-                  {availableAccounts.map(acc => {
+                  {filteredAccounts.map(acc => {
                     const isSelected = selectedAccounts.includes(acc);
                     return (
                       <div
@@ -466,11 +563,12 @@ export default function CampaignSettings() {
                   <select 
                     value={sendType}
                     onChange={(e) => setSendType(e.target.value)}
-                    className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full appearance-none bg-[#171717] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer [&>option]:bg-[#171717] [&>option]:text-white"
                   >
-                    <option>At custom times</option>
-                    <option>24 / 7 Anytime</option>
-                    <option>Recipient Business Hours</option>
+                    <option value="At custom times" className="bg-[#171717] text-white">At custom times</option>
+                    <option value="24 / 7 Anytime" className="bg-[#171717] text-white">24 / 7 Anytime</option>
+                    <option value="Recipient Business Hours" className="bg-[#171717] text-white">Recipient Business Hours</option>
                   </select>
                   <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
@@ -483,12 +581,17 @@ export default function CampaignSettings() {
                     <select 
                       value={fromTime}
                       onChange={(e) => setFromTime(e.target.value)}
-                      className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full appearance-none bg-[#171717] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer [&>option]:bg-[#171717] [&>option]:text-white"
                     >
-                      <option>9:00 AM</option>
-                      <option>9:30 AM</option>
-                      <option>10:00 AM</option>
-                      <option>11:00 AM</option>
+                      {!TIME_SLOTS.includes(fromTime) && (
+                        <option value={fromTime} className="bg-[#171717] text-white">{fromTime}</option>
+                      )}
+                      {TIME_SLOTS.map((slot) => (
+                        <option key={slot} value={slot} className="bg-[#171717] text-white">
+                          {slot}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                   </div>
@@ -500,12 +603,17 @@ export default function CampaignSettings() {
                     <select 
                       value={toTime}
                       onChange={(e) => setToTime(e.target.value)}
-                      className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full appearance-none bg-[#171717] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer [&>option]:bg-[#171717] [&>option]:text-white"
                     >
-                      <option>4:00 PM</option>
-                      <option>5:00 PM</option>
-                      <option>6:00 PM</option>
-                      <option>7:00 PM</option>
+                      {!TIME_SLOTS.includes(toTime) && (
+                        <option value={toTime} className="bg-[#171717] text-white">{toTime}</option>
+                      )}
+                      {TIME_SLOTS.map((slot) => (
+                        <option key={slot} value={slot} className="bg-[#171717] text-white">
+                          {slot}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                   </div>
@@ -515,14 +623,21 @@ export default function CampaignSettings() {
                   <label className="text-xs font-semibold text-slate-300">Timezone</label>
                   <div className="relative">
                     <select 
-                      value={timezone}
+                      value={normalizedTimezone}
                       onChange={(e) => setTimezone(e.target.value)}
-                      className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer truncate pr-8"
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full appearance-none bg-[#171717] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer truncate pr-8 [&>option]:bg-[#171717] [&>option]:text-white"
                     >
-                      <option>Chennai, Kolkata, Mumbai, New Delhi (UTC+05:30)</option>
-                      <option>Eastern Time (US & Canada) (UTC-05:00)</option>
-                      <option>Pacific Time (US & Canada) (UTC-08:00)</option>
-                      <option>London, Edinburgh (UTC+00:00)</option>
+                      {!TIMEZONES.some(tz => tz.label === normalizedTimezone || tz.value === normalizedTimezone) && (
+                        <option value={normalizedTimezone} className="bg-[#171717] text-white">
+                          {normalizedTimezone}
+                        </option>
+                      )}
+                      {TIMEZONES.map((tz) => (
+                        <option key={tz.value} value={tz.label} className="bg-[#171717] text-white">
+                          {tz.label}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                   </div>
@@ -633,11 +748,16 @@ export default function CampaignSettings() {
                   <select 
                     value={owner}
                     onChange={(e) => setOwner(e.target.value)}
-                    className="w-full appearance-none bg-white/[0.04] border border-white/[0.09] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full appearance-none bg-[#171717] border border-white/[0.09] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer [&>option]:bg-[#171717] [&>option]:text-white"
                   >
-                    <option>Sathish Eppakayala</option>
-                    <option>Victor Admin</option>
-                    <option>Alex Growth</option>
+                    {!['Vamsi Pallela', 'Victor Admin', 'Alex Growth', 'Demo User'].includes(owner) && !owner.toLowerCase().includes('sathish') && (
+                      <option value={owner} className="bg-[#171717] text-white">{owner}</option>
+                    )}
+                    <option value="Vamsi Pallela" className="bg-[#171717] text-white">Vamsi Pallela</option>
+                    <option value="Victor Admin" className="bg-[#171717] text-white">Victor Admin</option>
+                    <option value="Alex Growth" className="bg-[#171717] text-white">Alex Growth</option>
+                    <option value="Demo User" className="bg-[#171717] text-white">Demo User</option>
                   </select>
                   <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
@@ -904,11 +1024,12 @@ export default function CampaignSettings() {
                         <select 
                           value={winningMetric}
                           onChange={(e) => setWinningMetric(e.target.value)}
-                          className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer pr-10"
+                          style={{ colorScheme: 'dark' }}
+                          className="w-full appearance-none bg-[#171717] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer pr-10 [&>option]:bg-[#171717] [&>option]:text-white"
                         >
-                          <option value="Reply Rate">Reply Rate</option>
-                          <option value="Open Rate">Open Rate</option>
-                          <option value="Click Rate">Click Rate</option>
+                          <option value="Reply Rate" className="bg-[#171717] text-white">Reply Rate</option>
+                          <option value="Open Rate" className="bg-[#171717] text-white">Open Rate</option>
+                          <option value="Click Rate" className="bg-[#171717] text-white">Click Rate</option>
                         </select>
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-slate-400 pointer-events-none">
                           <X className="w-3.5 h-3.5 hover:text-white cursor-pointer" />
@@ -1304,12 +1425,13 @@ export default function CampaignSettings() {
                 <select 
                   value={selectedEspRecipient}
                   onChange={(e) => setSelectedEspRecipient(e.target.value)}
-                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white"
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full bg-[#171717] border border-white/[0.1] rounded-xl px-3 py-2 text-white [&>option]:bg-[#171717] [&>option]:text-white"
                 >
-                  <option value="Google / Gmail">Google / Gmail (ASPMX.L.GOOGLE.COM)</option>
-                  <option value="Microsoft 365 / Outlook">Microsoft 365 / Outlook (mail.protection.outlook.com)</option>
-                  <option value="Yahoo Mail">Yahoo / AOL</option>
-                  <option value="Custom / Private SMTP">Custom / Private SMTP</option>
+                  <option value="Google / Gmail" className="bg-[#171717] text-white">Google / Gmail (ASPMX.L.GOOGLE.COM)</option>
+                  <option value="Microsoft 365 / Outlook" className="bg-[#171717] text-white">Microsoft 365 / Outlook (mail.protection.outlook.com)</option>
+                  <option value="Yahoo Mail" className="bg-[#171717] text-white">Yahoo / AOL</option>
+                  <option value="Custom / Private SMTP" className="bg-[#171717] text-white">Custom / Private SMTP</option>
                 </select>
               </div>
 
@@ -1318,11 +1440,12 @@ export default function CampaignSettings() {
                 <select 
                   value={selectedEspSender}
                   onChange={(e) => setSelectedEspSender(e.target.value)}
-                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white"
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full bg-[#171717] border border-white/[0.1] rounded-xl px-3 py-2 text-white [&>option]:bg-[#171717] [&>option]:text-white"
                 >
-                  <option value="Google Workspace">Google Workspace Inboxes</option>
-                  <option value="Microsoft 365">Microsoft 365 Inboxes</option>
-                  <option value="Private SMTP Dedicated IP">Private SMTP Dedicated IP</option>
+                  <option value="Google Workspace" className="bg-[#171717] text-white">Google Workspace Inboxes</option>
+                  <option value="Microsoft 365" className="bg-[#171717] text-white">Microsoft 365 Inboxes</option>
+                  <option value="Private SMTP Dedicated IP" className="bg-[#171717] text-white">Private SMTP Dedicated IP</option>
                 </select>
               </div>
             </div>
