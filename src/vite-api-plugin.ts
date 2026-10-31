@@ -66,6 +66,12 @@ export function netlifyFunctionsDevPlugin(): Plugin {
             funcName = 'sheets-columns';
           } else if (pathname === '/api/sheets/worksheets') {
             funcName = 'sheets-worksheets';
+          } else if (pathname === '/api/sheets/inspect') {
+            funcName = 'sheets-inspect';
+          } else if (pathname === '/api/sheets/initialize') {
+            funcName = 'sheets-initialize';
+          } else if (pathname === '/api/sheets/test' || pathname === '/api/sheets/test-connection') {
+            funcName = 'sheets-test';
           } else if (pathname === '/api/track/open' || pathname === '/api/track-open') {
             funcName = 'track-open';
           } else {
@@ -80,12 +86,15 @@ export function netlifyFunctionsDevPlugin(): Plugin {
             return res.end(JSON.stringify({ error: `Function ${funcName} not found` }));
           }
 
-          // Read request body
-          const chunks: any[] = [];
-          for await (const chunk of req) {
-            chunks.push(chunk);
+          // Read request body safely
+          let rawBody = '';
+          if (req.method !== 'GET' && req.method !== 'HEAD') {
+            const chunks: any[] = [];
+            for await (const chunk of req) {
+              chunks.push(chunk);
+            }
+            rawBody = Buffer.concat(chunks).toString('utf8');
           }
-          const rawBody = Buffer.concat(chunks).toString('utf8');
 
           // Query parameters map
           const queryParams: Record<string, string> = {};
@@ -121,7 +130,13 @@ export function netlifyFunctionsDevPlugin(): Plugin {
 
           // Load function module using Vite's ssrLoadModule
           const mod = await server.ssrLoadModule(funcFile);
-          const result = await mod.handler(event, {});
+          const fn = mod.handler || mod.default?.handler || mod.default;
+
+          if (typeof fn !== 'function') {
+            throw new Error(`Handler not exported as a function in ${funcName}.ts`);
+          }
+
+          const result = await fn(event, {});
 
           res.statusCode = result?.statusCode || 200;
 

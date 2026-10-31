@@ -80,13 +80,13 @@ export default function CampaignAnalytics() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         
         {/* Left: Timeframe Filter & Percentage Slider */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           
           {/* Timeframe Dropdown */}
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#141520] hover:bg-[#1b1c2b] border border-[#232536] text-xs font-medium text-slate-200 transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-xs font-semibold text-slate-200 transition-colors cursor-pointer shadow-sm"
             >
               <span>{timeRange}</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -95,13 +95,13 @@ export default function CampaignAnalytics() {
             {dropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-                <div className="absolute left-0 mt-1.5 w-40 bg-[#161724] border border-[#282a3c] rounded-xl shadow-2xl py-1 z-50 text-xs">
+                <div className="absolute left-0 mt-2 w-44 bg-[#171717]/95 backdrop-blur-2xl border border-white/[0.1] rounded-2xl shadow-2xl py-1.5 z-50 text-xs text-slate-200 animate-in fade-in zoom-in-95">
                   {timeOptions.map((opt) => (
                     <button
                       key={opt}
                       onClick={() => { setTimeRange(opt); setDropdownOpen(false); }}
-                      className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                        timeRange === opt ? 'bg-[#9FA0FF]/20 text-[#9FA0FF] font-semibold' : 'text-slate-300 hover:bg-[#1e2030]'
+                      className={`w-full text-left px-3.5 py-2 text-xs transition-colors ${
+                        timeRange === opt ? 'bg-[#10b981]/15 text-emerald-300 font-bold' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
                       }`}
                     >
                       {opt}
@@ -113,143 +113,143 @@ export default function CampaignAnalytics() {
           </div>
 
           {/* Slider Pill */}
-          <div className="flex items-center gap-2 bg-[#141520] border border-[#232536] rounded-lg px-3 py-1 text-xs">
-            <span className="text-[#FFF3E3] font-medium">{progressVal}%</span>
+          <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/[0.09] rounded-xl px-3.5 py-1.5 text-xs">
+            <span className="text-white font-bold">{progressVal}%</span>
             <input 
               type="range" 
               min="0" 
               max="100" 
               value={progressVal} 
               onChange={(e) => setProgressVal(parseInt(e.target.value))}
-              className="w-20 h-1 bg-[#26283b] rounded-lg appearance-none cursor-pointer accent-[#9FA0FF]" 
+              className="w-20 h-1.5 bg-white/[0.08] rounded-lg appearance-none cursor-pointer accent-emerald-500" 
             />
           </div>
 
         </div>
 
-        {/* Right buttons if needed */}
+        {/* Right buttons */}
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setDiagnoseModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141520] hover:bg-[#1b1c2b] border border-[#232536] text-xs font-medium text-slate-300 hover:text-white transition-colors"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-xs font-semibold text-slate-200 hover:text-white transition-all shadow-sm cursor-pointer"
           >
-            <Activity className="w-3.5 h-3.5 text-[#9FA0FF]" />
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
             <span>Diagnose Deliverability</span>
           </button>
         </div>
 
       </div>
 
-      {/* 7 Metric Cards Grid (Matching Screenshot 1 exactly) */}
+      {/* 7 Metric Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
         
         {/* Card 1: Sequence started */}
-        <div className="p-4 rounded-xl bg-[#121319] border border-[#222430] flex flex-col justify-between min-h-[110px]">
+        <div className="glass-surface glass-surface-hover p-4 flex flex-col justify-between min-h-[110px] relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#9FA0FF] shadow-[0_0_8px_rgba(159,160,255,0.6)]" />
-              <span>Sequence started</span>
+              <span className="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+              <span className="text-slate-300 font-semibold text-[11px]">Started</span>
             </div>
-            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-400 cursor-pointer" />
+            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight mt-3">
+          <div className="text-2xl font-extrabold text-white tracking-tight mt-3">
             {analytics.enrolled}
           </div>
         </div>
 
         {/* Card 2: Total sent */}
-        <div className="p-4 rounded-xl bg-[#121319] border border-[#222430] flex flex-col justify-between min-h-[110px]">
+        <div className="glass-surface glass-surface-hover p-4 flex flex-col justify-between min-h-[110px] relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm bg-[#9FA0FF]" />
-              <span>Total sent</span>
+              <span className="w-2 h-2 rounded-full bg-[#38BDF8] shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+              <span className="text-slate-300 font-semibold text-[11px]">Total sent</span>
             </div>
-            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-400 cursor-pointer" />
+            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight mt-3">
+          <div className="text-2xl font-extrabold text-white tracking-tight mt-3">
             {analytics.sent}
           </div>
         </div>
 
         {/* Card 3: Open rate */}
-        <div className="p-4 rounded-xl bg-[#121319] border border-[#222430] flex flex-col justify-between min-h-[110px]">
+        <div className="glass-surface glass-surface-hover p-4 flex flex-col justify-between min-h-[110px] relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm bg-[#D5E8E6]" />
-              <span>Open rate</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span className="text-slate-300 font-semibold text-[11px]">Open rate</span>
             </div>
-            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-400 cursor-pointer" />
+            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight mt-3">
-            {analytics.openRate} <span className="text-slate-500 font-normal text-lg">| {analytics.opened}</span>
+          <div className="text-2xl font-extrabold text-white tracking-tight mt-3">
+            {analytics.openRate} <span className="text-slate-500 font-normal text-sm">| {analytics.opened}</span>
           </div>
         </div>
 
         {/* Card 4: Click rate */}
-        <div className="p-4 rounded-xl bg-[#121319] border border-[#222430] flex flex-col justify-between min-h-[110px]">
+        <div className="glass-surface glass-surface-hover p-4 flex flex-col justify-between min-h-[110px] relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm bg-[#FFF3E3]" />
-              <span>Click rate</span>
+              <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
+              <span className="text-slate-300 font-semibold text-[11px]">Click rate</span>
             </div>
-            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-400 cursor-pointer" />
+            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
           </div>
-          <div className="text-xl font-bold text-slate-300 tracking-tight mt-3">
+          <div className="text-xl font-extrabold text-slate-300 tracking-tight mt-3">
             {analytics.clicked ? `${analytics.clicked}` : 'Disabled'}
           </div>
         </div>
 
         {/* Card 5: Unique replies */}
-        <div className="p-4 rounded-xl bg-[#121319] border border-[#222430] flex flex-col justify-between min-h-[110px]">
+        <div className="glass-surface glass-surface-hover p-4 flex flex-col justify-between min-h-[110px] relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm bg-[#D5E8E6]" />
-              <span>Unique replies</span>
+              <span className="w-2 h-2 rounded-full bg-[#A855F7] shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+              <span className="text-slate-300 font-semibold text-[11px]">Replies</span>
             </div>
-            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-400 cursor-pointer" />
+            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight mt-3">
+          <div className="text-2xl font-extrabold text-white tracking-tight mt-3">
             {analytics.replied}
           </div>
         </div>
 
         {/* Card 6: Opportunities */}
-        <div className="p-4 rounded-xl bg-[#121319] border border-[#222430] flex flex-col justify-between min-h-[110px]">
+        <div className="glass-surface glass-surface-hover p-4 flex flex-col justify-between min-h-[110px] relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm bg-[#9FA0FF]" />
-              <span>Opportunities</span>
+              <span className="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+              <span className="text-slate-300 font-semibold text-[11px]">Opps</span>
             </div>
-            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-400 cursor-pointer" />
+            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight mt-3">
-            0 <span className="text-slate-500 font-normal text-lg">| $0</span>
+          <div className="text-2xl font-extrabold text-white tracking-tight mt-3">
+            0 <span className="text-slate-500 font-normal text-sm">| $0</span>
           </div>
         </div>
 
         {/* Card 7: Conversions */}
-        <div className="p-4 rounded-xl bg-[#121319] border border-[#222430] flex flex-col justify-between min-h-[110px]">
+        <div className="glass-surface glass-surface-hover p-4 flex flex-col justify-between min-h-[110px] relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm bg-[#D5E8E6]" />
-              <span>Conversions</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span className="text-slate-300 font-semibold text-[11px]">Conversions</span>
             </div>
-            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-400 cursor-pointer" />
+            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight mt-3">
-            0 <span className="text-slate-500 font-normal text-lg">| $0</span>
+          <div className="text-2xl font-extrabold text-white tracking-tight mt-3">
+            0 <span className="text-slate-500 font-normal text-sm">| $0</span>
           </div>
         </div>
 
       </div>
 
-      {/* Performance Trend Chart Card (Matching Screenshot 1 & 2) */}
-      <div className="p-6 rounded-2xl bg-[#121319] border border-[#222430] space-y-6">
+      {/* Performance Trend Chart Card */}
+      <div className="glass-surface p-6 space-y-6">
         
         {/* Title */}
         <div>
-          <h2 className="text-sm font-bold text-[#FFF3E3]">Performance Trend</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Email campaign metrics over time</p>
+          <h2 className="text-sm font-bold text-white tracking-tight">Performance Trend</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Email campaign metrics progression over time</p>
         </div>
 
         {/* Interactive Curves Grid */}
@@ -258,7 +258,7 @@ export default function CampaignAnalytics() {
           {/* Sent Curve */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#9FA0FF] shadow-[0_0_8px_rgba(159,160,255,0.8)]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(139,124,255,0.8)]" />
               <span className="text-xs font-medium text-slate-300">Sent</span>
               <span className="text-sm font-bold text-[#FFF3E3]">67</span>
             </div>
@@ -267,8 +267,8 @@ export default function CampaignAnalytics() {
               <svg className="w-full h-full overflow-visible" viewBox="0 0 500 120" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="sentGlow" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#9FA0FF" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="#9FA0FF" stopOpacity="0.0" />
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
                 {/* Horizontal grid lines */}
@@ -285,13 +285,13 @@ export default function CampaignAnalytics() {
                 <path 
                   d="M 0 110 Q 50 110, 80 50 T 160 110 L 260 110 Q 300 110, 340 60 T 450 50 L 500 50" 
                   fill="none" 
-                  stroke="#9FA0FF" 
+                  stroke="#10b981" 
                   strokeWidth="2.5" 
                   strokeLinecap="round" 
                 />
 
                 {/* Point on Sent */}
-                <circle cx="500" cy="50" r="4" fill="#9FA0FF" stroke="#ffffff" strokeWidth="2" />
+                <circle cx="500" cy="50" r="4" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
               </svg>
 
               {/* Y Axis indicators */}
@@ -403,12 +403,12 @@ export default function CampaignAnalytics() {
       {/* Subtabs: Step analytics | Activity | Bounces (Matching Screenshot 2 & 3) */}
       <div className="space-y-4">
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 p-1 rounded-xl bg-white/[0.04] border border-white/[0.08] w-fit">
           <button
             onClick={() => setActiveSubTab('steps')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeSubTab === 'steps' 
-                ? 'bg-[#9FA0FF]/20 text-[#9FA0FF] shadow-sm border border-[#9FA0FF]/40 font-bold' 
+                ? 'bg-[#a31c1b] text-white shadow-[0_0_12px_rgba(163,28,27,0.5)] font-bold' 
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -416,9 +416,9 @@ export default function CampaignAnalytics() {
           </button>
           <button
             onClick={() => setActiveSubTab('activity')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeSubTab === 'activity' 
-                ? 'bg-[#9FA0FF]/20 text-[#9FA0FF] shadow-sm border border-[#9FA0FF]/40 font-bold' 
+                ? 'bg-[#a31c1b] text-white shadow-[0_0_12px_rgba(163,28,27,0.5)] font-bold' 
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -426,9 +426,9 @@ export default function CampaignAnalytics() {
           </button>
           <button
             onClick={() => setActiveSubTab('bounces')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeSubTab === 'bounces' 
-                ? 'bg-[#9FA0FF]/20 text-[#9FA0FF] shadow-sm border border-[#9FA0FF]/40 font-bold' 
+                ? 'bg-[#a31c1b] text-white shadow-[0_0_12px_rgba(163,28,27,0.5)] font-bold' 
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -436,56 +436,56 @@ export default function CampaignAnalytics() {
           </button>
         </div>
 
-        {/* Step Analytics Table (Matching Screenshot 2 & 3 exactly) */}
+        {/* Step Analytics Table */}
         {activeSubTab === 'steps' && (
-          <div className="rounded-2xl bg-[#121319] border border-[#222430] overflow-hidden">
+          <div className="glass-surface overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-[#0e0f14] border-b border-[#1f212c]">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-white/[0.03] border-b border-white/[0.08]">
                   <tr>
-                    <th className="px-6 py-4 font-semibold text-slate-300">STEP</th>
-                    <th className="px-4 py-4 font-semibold text-right">SENT</th>
-                    <th className="px-4 py-4 font-semibold text-right">OPENED</th>
-                    <th className="px-4 py-4 font-semibold text-right">REPLIED</th>
-                    <th className="px-4 py-4 font-semibold text-right">REPLY RATE</th>
-                    <th className="px-4 py-4 font-semibold text-right">POSITIVE REPLY RATE</th>
-                    <th className="px-4 py-4 font-semibold text-right">OPPORTUNITIES</th>
-                    <th className="px-4 py-4 font-semibold text-right">MEETINGS BOOKED</th>
-                    <th className="px-6 py-4 font-semibold text-right">WON</th>
+                    <th className="px-6 py-4 font-bold text-slate-300">STEP</th>
+                    <th className="px-4 py-4 font-bold text-right text-slate-300">SENT</th>
+                    <th className="px-4 py-4 font-bold text-right text-slate-300">OPENED</th>
+                    <th className="px-4 py-4 font-bold text-right text-slate-300">REPLIED</th>
+                    <th className="px-4 py-4 font-bold text-right text-slate-300">REPLY RATE</th>
+                    <th className="px-4 py-4 font-bold text-right text-slate-300">POSITIVE REPLY RATE</th>
+                    <th className="px-4 py-4 font-bold text-right text-slate-300">OPPORTUNITIES</th>
+                    <th className="px-4 py-4 font-bold text-right text-slate-300">MEETINGS BOOKED</th>
+                    <th className="px-6 py-4 font-bold text-right text-slate-300">WON</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1c1e28]">
+                <tbody className="divide-y divide-white/[0.05]">
                   {stepsData.map((step: any) => {
                     const isStepActive = stepToggles[step.id] ?? true;
                     return (
-                      <tr key={step.id} className="hover:bg-[#161722]/50 transition-colors group">
+                      <tr key={step.id} className="hover:bg-white/[0.035] transition-colors group">
                         
                         {/* Step Title & Variant Toggle A */}
                         <td className="px-6 py-4">
                           <div className="space-y-2">
-                            <span className="font-semibold text-slate-200 block text-xs">{step.name}</span>
+                            <span className="font-bold text-white block text-xs">{step.name}</span>
                             
                             {/* Toggle switch for Variant A */}
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => toggleStep(step.id)}
                                 className={`w-8 h-4 rounded-full transition-colors relative cursor-pointer ${
-                                  isStepActive ? 'bg-[#9FA0FF]' : 'bg-slate-700'
+                                  isStepActive ? 'bg-[#10b981]' : 'bg-slate-700'
                                 }`}
                               >
-                                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-[#0c0d18] transition-transform ${
+                                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
                                   isStepActive ? 'right-0.5' : 'left-0.5'
                                 }`} />
                               </button>
-                              <span className="text-[11px] font-medium text-slate-400">A</span>
+                              <span className="text-[11px] font-semibold text-slate-400">A</span>
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 text-right text-slate-200 font-medium">{step.sent}</td>
-                        <td className="px-4 py-4 text-right text-slate-200 font-medium">{step.opened}</td>
-                        <td className="px-4 py-4 text-right text-slate-200 font-medium">{step.replied}</td>
-                        <td className="px-4 py-4 text-right text-slate-300 font-medium">{step.replyRate}</td>
+                        <td className="px-4 py-4 text-right text-slate-200 font-bold">{step.sent}</td>
+                        <td className="px-4 py-4 text-right text-slate-200 font-bold">{step.opened}</td>
+                        <td className="px-4 py-4 text-right text-slate-200 font-bold">{step.replied}</td>
+                        <td className="px-4 py-4 text-right text-emerald-400 font-bold">{step.replyRate}</td>
                         <td className="px-4 py-4 text-right text-slate-400 font-mono">{step.posReplyRate}</td>
                         <td className="px-4 py-4 text-right text-slate-300">{step.opps}</td>
                         <td className="px-4 py-4 text-right text-slate-300">{step.meetings}</td>
@@ -501,17 +501,17 @@ export default function CampaignAnalytics() {
 
         {/* Activity Feed tab */}
         {activeSubTab === 'activity' && (
-          <div className="p-6 rounded-2xl bg-[#121319] border border-[#222430] space-y-3">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Live Prospect Stream</h4>
+          <div className="glass-surface p-6 space-y-3">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Live Prospect Stream</h4>
             <div className="space-y-3">
               {[
                 { type: 'reply', user: 'sarah.connor@acme.com', text: 'Replied to Step 1: "Interested, let\'s chat next Tuesday."', time: '12m ago' },
                 { type: 'open', user: 'david.miller@enterprise.io', text: 'Opened Step 2 email', time: '45m ago' },
                 { type: 'sent', user: 'jason.lee@fintech.co', text: 'Dispatched Step 1 email via inbox sales1@reachly.ai', time: '1h ago' },
               ].map((act, i) => (
-                <div key={i} className="p-3.5 rounded-xl bg-[#161722] border border-[#242636] flex items-center justify-between text-xs">
+                <div key={i} className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between text-xs">
                   <div>
-                    <span className="font-semibold text-white">{act.user}</span>
+                    <span className="font-bold text-white">{act.user}</span>
                     <p className="text-slate-400 text-[11px] mt-0.5">{act.text}</p>
                   </div>
                   <span className="text-[10px] text-slate-500 font-mono">{act.time}</span>
@@ -523,13 +523,13 @@ export default function CampaignAnalytics() {
 
         {/* Bounces Tab */}
         {activeSubTab === 'bounces' && (
-          <div className="p-6 rounded-2xl bg-[#121319] border border-[#222430] space-y-3">
+          <div className="glass-surface p-6 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bounce Guard Report</h4>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bounce Guard Report</h4>
                 <p className="text-xs text-slate-400 mt-1">Bounce rate is 0.0% (Threshold: 3.0%). Sender reputation is protected.</p>
               </div>
-              <span className="px-2.5 py-1 rounded bg-[#D5E8E6]/20 text-[#D5E8E6] border border-[#D5E8E6]/30 text-xs font-semibold">
+              <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
                 0 Bounces Recorded
               </span>
             </div>

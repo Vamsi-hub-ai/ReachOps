@@ -2,19 +2,27 @@ import { schedule } from '@netlify/functions';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '../lib/prisma';
 import { sendSequenceEmail } from '../lib/mailer';
+import { 
+  isWithinSendingWindow, 
+  checkPreSendCompliance, 
+  acquireEnrollmentLock,
+  syncSendTelemetryToSheet 
+} from '../lib/follow-up-engine';
 
-// Runs every 5 minutes
+// Runs every 5 minutes on background schedule
 export const handler = schedule('*/5 * * * *', async (event) => {
   console.log('Cron Dispatcher Triggered');
   try {
-    // 1. Find enrollments ready to send
+    const now = new Date();
+
+    // 1. Find enrollments ready to dispatch
     const enrollments = await prisma.campaignEnrollment.findMany({
       where: {
-        status: { in: ['PENDING', 'ACTIVE'] },
+        status: { in: ['PENDING', 'ACTIVE', 'SCHEDULED'] },
         campaign: { status: 'ACTIVE' },
         OR: [
           { nextActionAt: null },
-          { nextActionAt: { lte: new Date() } }
+          { nextActionAt: { lte: now } }
         ]
       },
       include: {
@@ -27,7 +35,7 @@ export const handler = schedule('*/5 * * * *', async (event) => {
           }
         }
       },
-      take: 50 // Limit batch size to avoid timeout
+      take: 50 // Limit batch size to protect function execution timeout
     });
 
     if (enrollments.length === 0) {
@@ -35,12 +43,78 @@ export const handler = schedule('*/5 * * * *', async (event) => {
       return { statusCode: 200, body: 'No pending emails' };
     }
 
+    let processedCount = 0;
+
     for (const enrollment of enrollments) {
-      // PRODUCTION FIX: Inbox Rotation & Daily Limits
-      // Fetch available accounts dynamically per email to support round-robin rotation
+      const campaign = enrollment.campaign;
+      const prospect = enrollment.prospect;
+
+      // RULE 1: If any tag is applied, automated follow-up sequence MUST STOP!
+      const STOPPED_TAGS = ['LEAD', 'WARM', 'COLD', 'DNC', 'INVALID CONTACT', 'UNSUBSCRIBED', 'PAUSED'];
+      const pStatus = (prospect.status || '').toUpperCase();
+      const hasTag = STOPPED_TAGS.some(t => pStatus.includes(t));
+
+      if (hasTag && enrollment.status !== 'SCHEDULED') {
+        console.log(`[TAG_STOP] Skipping dispatch: ${prospect.email} tagged as ${prospect.status}. Follow-up paused.`);
+        await prisma.campaignEnrollment.update({
+          where: { id: enrollment.id },
+          data: {
+            status: 'PAUSED',
+            stopReason: `Lead tagged as ${prospect.status}. Automated follow-up halted.`,
+            nextActionAt: null
+          }
+        });
+        continue;
+      }
+
+      // RULE 2: If status is SCHEDULED, verify scheduled date has arrived
+      if (enrollment.status === 'SCHEDULED' && enrollment.nextActionAt) {
+        if (now < enrollment.nextActionAt) {
+          console.log(`[SCHEDULED_WAIT] Skipping dispatch: ${prospect.email} scheduled for ${enrollment.nextActionAt.toISOString()}`);
+          continue;
+        }
+        console.log(`[SCHEDULED_DISPATCH] Scheduled time arrived for ${prospect.email}. Dispatching now!`);
+      }
+
+      // RULE 3: Sending Window & Weekend Schedule Verification
+      const windowCheck = isWithinSendingWindow({
+        timezone: campaign.timezone,
+        sendingWindowStart: campaign.sendingWindowStart,
+        sendingWindowEnd: campaign.sendingWindowEnd,
+        weekendSendingEnabled: campaign.weekendSendingEnabled,
+      }, now);
+
+      if (!windowCheck.isAllowed) {
+        console.log(`[WINDOW_HOLD] Skipping ${prospect.email}: ${windowCheck.reason}`);
+        continue;
+      }
+
+      // RULE 4: Pre-Send Compliance Verification (Unsubscribe, Bounce, Reply, Suppression)
+      const compliance = await checkPreSendCompliance(campaign.workspaceId, prospect);
+      if (!compliance.eligible) {
+        console.log(`[COMPLIANCE_BLOCK] Canceling dispatch for ${prospect.email}: ${compliance.blockReason}`);
+        await prisma.campaignEnrollment.update({
+          where: { id: enrollment.id },
+          data: {
+            status: 'STOPPED',
+            stopReason: compliance.blockReason,
+            nextActionAt: null,
+          },
+        });
+        continue;
+      }
+
+      // RULE 5: Atomically acquire execution lock to prevent double-dispatch
+      const isLocked = await acquireEnrollmentLock(enrollment.id);
+      if (!isLocked) {
+        console.log(`[CONCURRENCY_LOCK] Enrollment ${enrollment.id} is already being processed by another worker.`);
+        continue;
+      }
+
+      // RULE 6: Inbox Rotation & Daily Limit Safeguards
       const accounts = await prisma.emailAccount.findMany({
         where: { 
-          workspaceId: enrollment.campaign.workspaceId, 
+          workspaceId: campaign.workspaceId, 
           status: 'ACTIVE' 
         },
         orderBy: { sentToday: 'asc' }
@@ -49,48 +123,56 @@ export const handler = schedule('*/5 * * * *', async (event) => {
       const account = accounts.find(acc => acc.sentToday < acc.dailyLimit);
 
       if (!account) {
-        console.error(`No available sender account (limits reached) for workspace ${enrollment.campaign.workspaceId}`);
-        continue; // Skip this enrollment until tomorrow
+        console.error(`No available sender account (limits reached) for workspace ${campaign.workspaceId}`);
+        // Revert lock back to ACTIVE
+        await prisma.campaignEnrollment.update({
+          where: { id: enrollment.id },
+          data: { status: 'ACTIVE' },
+        });
+        continue;
       }
 
       const accountId = account.id;
 
-      const sequence = enrollment.campaign.sequences[0];
+      const sequence = campaign.sequences[0];
       if (!sequence || sequence.steps.length === 0) {
         console.error(`No sequence or steps for campaign ${enrollment.campaignId}`);
+        await prisma.campaignEnrollment.update({
+          where: { id: enrollment.id },
+          data: { status: 'PAUSED', stopReason: 'No sequence steps found' },
+        });
         continue;
       }
 
       const currentStep = sequence.steps.find(s => s.stepNumber === enrollment.currentStep);
       
       if (!currentStep) {
-        // If they are on a step that doesn't exist (e.g. sequence finished)
         await prisma.campaignEnrollment.update({
           where: { id: enrollment.id },
-          data: { status: 'COMPLETED' }
+          data: { status: 'COMPLETED', nextActionAt: null }
         });
         continue;
       }
 
-      // 3. Dispatch the email
-      console.log(`Sending step ${currentStep.stepNumber} to ${enrollment.prospect.email}`);
+      // 7. Dispatch the Email via Provider (with Demo Safeguards)
+      console.log(`Sending step ${currentStep.stepNumber} to ${prospect.email}`);
       const messageId = uuidv4();
-      const result = await sendSequenceEmail(
+      const sendResult = await sendSequenceEmail(
         accountId, 
         {
-          email: enrollment.prospect.email,
-          firstName: enrollment.prospect.firstName,
-          lastName: enrollment.prospect.lastName,
-          company: enrollment.prospect.company,
-          customData: enrollment.prospect.customFieldsJson ? JSON.parse(enrollment.prospect.customFieldsJson) : {}
+          email: prospect.email,
+          firstName: prospect.firstName,
+          lastName: prospect.lastName,
+          company: prospect.company,
+          customData: prospect.customFieldsJson ? JSON.parse(prospect.customFieldsJson) : {}
         }, 
         currentStep.subject, 
         currentStep.bodyHtml,
         messageId
       );
 
-      if (result.success) {
-        // 4. Log the message
+      if (sendResult.success) {
+        // 8. Record Message Log
         await prisma.message.create({
           data: {
             id: messageId,
@@ -99,46 +181,86 @@ export const handler = schedule('*/5 * * * *', async (event) => {
             sequenceStepId: currentStep.id,
             emailAccountId: accountId,
             status: 'SENT',
-            providerMessageId: result.messageId || 'unknown',
-            subject: currentStep.subject
+            providerMessageId: sendResult.messageId || 'unknown',
+            subject: currentStep.subject,
+            sentAt: now,
           }
         });
 
-        // Update account limits
+        // Update Account Daily Limits
         await prisma.emailAccount.update({
           where: { id: accountId },
           data: { 
             sentToday: { increment: 1 },
-            lastSentAt: new Date()
+            lastSentAt: now,
           }
         });
 
-        // 5. Calculate next step and update enrollment
-        const nextStep = sequence.steps.find(s => s.stepNumber === currentStep.stepNumber + 1);
-        
-        if (nextStep) {
-          const nextTime = new Date();
-          nextTime.setDate(nextTime.getDate() + (nextStep.delayDays || 0));
-          nextTime.setHours(nextTime.getHours() + (nextStep.delayHours || 0));
-          nextTime.setMinutes(nextTime.getMinutes() + (nextStep.delayMinutes || 0));
-          
+        // 9. Advance Sequence Cadence
+        const wasManualScheduled = enrollment.status === 'SCHEDULED';
+
+        let nextStepNumber: number | undefined = undefined;
+        let nextTime: Date | null = null;
+
+        if (wasManualScheduled) {
+          // RULE: After the manually scheduled follow-up is sent, keep original automated sequence PAUSED!
           await prisma.campaignEnrollment.update({
             where: { id: enrollment.id },
-            data: { 
-              status: 'ACTIVE',
-              currentStep: nextStep.stepNumber,
-              nextActionAt: nextTime
-            }
+            data: {
+              status: 'PAUSED',
+              lastSentAt: now,
+              stopReason: 'Manual scheduled follow-up sent. Automated sequence remains paused.',
+              nextActionAt: null,
+            },
           });
         } else {
-          await prisma.campaignEnrollment.update({
-            where: { id: enrollment.id },
-            data: { status: 'COMPLETED', nextActionAt: null }
-          });
+          const nextStep = sequence.steps.find(s => s.stepNumber === currentStep.stepNumber + 1);
+          
+          if (nextStep) {
+            nextStepNumber = nextStep.stepNumber;
+            nextTime = new Date();
+            nextTime.setDate(nextTime.getDate() + (nextStep.delayDays || 0));
+            nextTime.setHours(nextTime.getHours() + (nextStep.delayHours || 0));
+            nextTime.setMinutes(nextTime.getMinutes() + (nextStep.delayMinutes || 0));
+            
+            await prisma.campaignEnrollment.update({
+              where: { id: enrollment.id },
+              data: { 
+                status: 'ACTIVE',
+                currentStep: nextStep.stepNumber,
+                lastSentAt: now,
+                nextActionAt: nextTime
+              }
+            });
+          } else {
+            await prisma.campaignEnrollment.update({
+              where: { id: enrollment.id },
+              data: { 
+                status: 'COMPLETED', 
+                lastSentAt: now,
+                completedAt: now,
+                nextActionAt: null 
+              }
+            });
+          }
         }
+
+        // 10. Sync Telemetry to Google Sheets Row
+        await syncSendTelemetryToSheet({
+          workspaceId: campaign.workspaceId,
+          campaignId: campaign.id,
+          prospectEmail: prospect.email,
+          stepNumber: currentStep.stepNumber,
+          messageSubject: currentStep.subject,
+          sentAt: now,
+          nextStepNumber,
+          nextActionAt: nextTime,
+        });
+
+        processedCount++;
       } else {
-        // 6. Log Failure
-        console.error(`Failed to send to ${enrollment.prospect.email}:`, result.error);
+        // 11. Record Failure & Release Lock
+        console.error(`Failed to send to ${prospect.email}:`, sendResult.error);
         await prisma.message.create({
           data: {
             campaignId: enrollment.campaignId,
@@ -146,14 +268,20 @@ export const handler = schedule('*/5 * * * *', async (event) => {
             sequenceStepId: currentStep.id,
             emailAccountId: accountId,
             status: 'FAILED',
-            errorMessage: String(result.error),
-            subject: currentStep.subject
+            errorMessage: String(sendResult.error),
+            subject: currentStep.subject,
+            failedAt: now,
           }
+        });
+
+        await prisma.campaignEnrollment.update({
+          where: { id: enrollment.id },
+          data: { status: 'ACTIVE', stopReason: `Send error: ${String(sendResult.error)}` }
         });
       }
     }
 
-    return { statusCode: 200, body: `Processed ${enrollments.length} enrollments.` };
+    return { statusCode: 200, body: `Processed ${processedCount} enrollments.` };
   } catch (error: any) {
     console.error('Cron Dispatch Error:', error);
     return { statusCode: 500, body: 'Internal Server Error' };

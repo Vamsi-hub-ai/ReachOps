@@ -273,16 +273,210 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      if (action === 'mark_lead') {
+      if (action === 'mark_lead' || action === 'apply_tag') {
+        const appliedTag = status || body.tag || 'Lead';
+        const isDnc = ['DNC', 'INVALID CONTACT'].some(t => appliedTag.toUpperCase().includes(t));
+
         await prisma.prospect.update({
           where: { id: prospect.id },
-          data: { status: status || 'Lead' }
+          data: { 
+            status: appliedTag,
+            unsubscribe: isDnc ? true : prospect.unsubscribe
+          }
+        });
+
+        // RULE: Whenever ANY tag is applied, automatically pause automated follow-ups for this prospect
+        await prisma.campaignEnrollment.updateMany({
+          where: { prospectId: prospect.id },
+          data: {
+            status: 'PAUSED',
+            stopReason: `Follow-ups paused: Prospect tagged as ${appliedTag}. Other campaign prospects continue sending.`,
+            nextActionAt: null
+          }
         });
 
         return {
           statusCode: 200,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, status }),
+          body: JSON.stringify({ 
+            success: true, 
+            status: appliedTag,
+            sequencePaused: true,
+            followupStatus: 'PAUSED',
+            stopReason: `Automated follow-up paused: Prospect tagged as ${appliedTag}`
+          }),
+        };
+      }
+
+      if (action === 'remove_tag') {
+        await prisma.prospect.update({
+          where: { id: prospect.id },
+          data: { status: 'New' }
+        });
+
+        // RULE: When a tag is removed, automated sequence REMAINS PAUSED!
+        await prisma.campaignEnrollment.updateMany({
+          where: { prospectId: prospect.id },
+          data: {
+            status: 'PAUSED',
+            stopReason: 'Tag removed. Follow-up sequence remains paused until explicitly resumed.',
+            nextActionAt: null
+          }
+        });
+
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            status: 'New',
+            sequencePaused: true,
+            followupStatus: 'PAUSED',
+            message: 'Tag removed. Automated sequence remains paused until explicitly resumed.'
+          }),
+        };
+      }
+
+      if (action === 'pause_sequence') {
+        await prisma.campaignEnrollment.updateMany({
+          where: { prospectId: prospect.id },
+          data: {
+            status: 'PAUSED',
+            stopReason: 'Manually paused by user.',
+            nextActionAt: null
+          }
+        });
+
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            sequencePaused: true,
+            followupStatus: 'PAUSED',
+            message: 'Sequence manually paused for this prospect.'
+          }),
+        };
+      }
+
+      if (action === 'resume_sequence') {
+        // SYSTEM-PROTECTED STOPPING CONDITIONS:
+        // Reply received, Unsubscribed, Permanent bounce, or Suppressed
+        if (prospect.unsubscribe || prospect.bounced || prospect.replied) {
+          const reason = prospect.unsubscribe ? 'unsubscribed' : prospect.bounced ? 'permanently bounced' : 'replied';
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              error: `Compliance restriction: Cannot resume sequence. Recipient has ${reason}.`
+            }),
+          };
+        }
+
+        const isSuppressed = await prisma.suppression.findFirst({
+          where: { workspaceId: { in: workspaceIds }, email: prospect.email }
+        });
+        if (isSuppressed) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              error: `Compliance restriction: Cannot resume sequence. Recipient is suppressed (${isSuppressed.reason}).`
+            }),
+          };
+        }
+
+        // Resume sequence if eligible
+        await prisma.campaignEnrollment.updateMany({
+          where: { prospectId: prospect.id },
+          data: {
+            status: 'ACTIVE',
+            stopReason: null,
+            nextActionAt: new Date()
+          }
+        });
+
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            sequencePaused: false,
+            followupStatus: 'ACTIVE',
+            message: 'Automated sequence resumed successfully.'
+          }),
+        };
+      }
+
+      if (action === 'schedule_follow_up') {
+        // SYSTEM-PROTECTED STOPPING CONDITIONS:
+        if (prospect.unsubscribe || prospect.bounced || prospect.replied) {
+          const reason = prospect.unsubscribe ? 'unsubscribed' : prospect.bounced ? 'permanently bounced' : 'replied';
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              error: `Scheduling blocked by compliance: Recipient has ${reason}. Manual scheduling is not permitted.`
+            }),
+          };
+        }
+
+        const isSuppressed = await prisma.suppression.findFirst({
+          where: { workspaceId: { in: workspaceIds }, email: prospect.email }
+        });
+        if (isSuppressed) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              error: `Scheduling blocked: Recipient is on the workspace suppression list (${isSuppressed.reason}).`
+            }),
+          };
+        }
+
+        const { scheduledDate, scheduledTime, formattedLabel, timezone = 'UTC' } = body;
+        let targetDate = new Date();
+        try {
+          if (scheduledDate) {
+            const timePart = scheduledTime || '09:00';
+            targetDate = new Date(`${scheduledDate}T${timePart}:00`);
+            if (isNaN(targetDate.getTime())) targetDate = new Date(Date.now() + 86400000);
+          } else {
+            targetDate = new Date(Date.now() + 86400000);
+          }
+        } catch {
+          targetDate = new Date(Date.now() + 86400000);
+        }
+
+        const statusLabel = `Scheduled (${formattedLabel || scheduledDate})`;
+
+        await prisma.prospect.update({
+          where: { id: prospect.id },
+          data: { status: statusLabel }
+        });
+
+        // Set enrollment to SCHEDULED with the specific target date
+        // Note: Authorizes this single follow-up only; keeps original sequence paused!
+        await prisma.campaignEnrollment.updateMany({
+          where: { prospectId: prospect.id },
+          data: {
+            status: 'SCHEDULED',
+            nextActionAt: targetDate,
+            stopReason: `Explicit single follow-up scheduled for ${formattedLabel || scheduledDate}. Original sequence remains paused.`
+          }
+        });
+
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            status: statusLabel,
+            scheduledAt: targetDate.toISOString(),
+            formattedLabel: formattedLabel || scheduledDate,
+            timezone,
+            message: `Next follow-up email scheduled for ${formattedLabel || scheduledDate}. Original sequence remains paused.`
+          }),
         };
       }
 

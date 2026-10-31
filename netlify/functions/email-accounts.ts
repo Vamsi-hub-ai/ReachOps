@@ -86,6 +86,58 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    if (event.httpMethod === 'PATCH') {
+      const body = JSON.parse(event.body || '{}');
+      const { id, displayName, dailyLimit, status } = body;
+
+      if (!id) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Account ID is required' }) };
+      }
+
+      if (id.startsWith('demo-') || auth.isDemo) {
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: true,
+            account: {
+              id,
+              displayName: displayName || 'Updated Mailbox',
+              dailyLimit: dailyLimit || 50,
+              status: status || 'ACTIVE',
+              ...body,
+            },
+          }),
+        };
+      }
+
+      const updateData: any = {};
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (dailyLimit !== undefined) updateData.dailyLimit = Number(dailyLimit);
+      if (status !== undefined) updateData.status = status;
+
+      const updated = await prisma.emailAccount.updateMany({
+        where: { id, workspaceId: { in: workspaceIds } },
+        data: updateData,
+      });
+
+      if (updated.count === 0) {
+        return {
+          statusCode: 404,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Account not found' }),
+        };
+      }
+
+      const account = await prisma.emailAccount.findUnique({ where: { id } });
+
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ success: true, account }),
+      };
+    }
+
     if (event.httpMethod === 'DELETE') {
       const body = JSON.parse(event.body || '{}');
       const id = body.id || event.queryStringParameters?.id;

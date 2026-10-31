@@ -3,12 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  User, CreditCard, Bell, Key, Shield, CheckCircle2, Blocks, 
+import GoogleSheetsManagerModal from '@/components/google-sheets/GoogleSheetsManagerModal';
+import { User, CreditCard, Bell, Key, Shield, CheckCircle2, Blocks, 
   Webhook, MessageSquare, Users, UserPlus, MoreHorizontal, Plus, 
   Trash2, Copy, Eye, EyeOff, Check, Send, Smartphone, 
-  RefreshCw, AlertCircle, Sparkles, Laptop, Download, Globe
-} from 'lucide-react';
+  RefreshCw, AlertCircle, Sparkles, Laptop, Download, Globe, FileSpreadsheet } from 'lucide-react';
 
 interface TeamMember {
   id: string;
@@ -122,6 +121,7 @@ export default function Settings() {
       }
     ];
   });
+  const [isSheetsModalOpen, setIsSheetsModalOpen] = useState(false);
   const [newKeyModal, setNewKeyModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
@@ -744,8 +744,17 @@ export default function Settings() {
                       <h3 className="font-bold text-white text-base">{app.name}</h3>
                       <p className="text-xs text-slate-400 mt-1 mb-4">{app.desc}</p>
                     </div>
-                    <Button 
-                      onClick={() => toggleIntegration(app.id)}
+                    {app.id === 'sheets' && (
+                        <Button 
+                          type="button"
+                          onClick={() => setIsSheetsModalOpen(true)}
+                          className="w-full font-bold text-xs h-9 mb-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20 border-none flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5" />
+                          <span>Configure Database & Schema</span>
+                        </Button>
+                      )}
+                      <Button onClick={() => toggleIntegration(app.id)}
                       variant={app.connected ? 'outline' : 'default'}
                       className={`w-full font-bold text-xs h-9 ${app.connected ? 'border-[#26283b] bg-[#141520] hover:bg-[#181a28] text-slate-300' : 'bg-[#9FA0FF] hover:bg-[#8e8fff] text-[#0c0d18]'}`}
                     >
@@ -1138,6 +1147,16 @@ export default function Settings() {
         </div>
       )}
 
+          {/* Google Sheets Manager Modal */}
+      <GoogleSheetsManagerModal
+        isOpen={isSheetsModalOpen}
+        onClose={() => setIsSheetsModalOpen(false)}
+        initialSpreadsheetUrl="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit"
+        initialSheetName="Prospects"
+        onConnected={() => {
+          showToast('Google Sheet connected as outreach database!');
+        }}
+      />
     </div>
   );
 }

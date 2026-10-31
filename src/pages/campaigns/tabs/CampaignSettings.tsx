@@ -27,6 +27,15 @@ export default function CampaignSettings() {
   const [ccBccOpen, setCcBccOpen] = useState(true);
 
   // 1. Accounts To Use state
+  const [currentUser] = useState<any>(() => {
+    try {
+      const u = localStorage.getItem('user');
+      if (u) return JSON.parse(u);
+    } catch {}
+    return null;
+  });
+  const isDemo = Boolean(currentUser?.isDemo || currentUser?.email === 'demo@reachops.com');
+
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [availableAccounts, setAvailableAccounts] = useState<string[]>([]);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
@@ -143,18 +152,26 @@ export default function CampaignSettings() {
           const emails = data.map((a: any) => a.email);
           setAvailableAccounts(emails);
           setSelectedAccounts(prev => prev.length === 0 ? [emails[0]] : prev);
-        } else {
+        } else if (isDemo) {
           const fallback = ['alex@reachops-demo.io', 'growth@reachops-demo.io'];
           setAvailableAccounts(fallback);
           setSelectedAccounts(prev => prev.length === 0 ? [fallback[0]] : prev);
+        } else {
+          setAvailableAccounts([]);
+          setSelectedAccounts([]);
         }
       })
       .catch(() => {
-        const fallback = ['alex@reachops-demo.io', 'growth@reachops-demo.io'];
-        setAvailableAccounts(fallback);
-        setSelectedAccounts(prev => prev.length === 0 ? [fallback[0]] : prev);
+        if (isDemo) {
+          const fallback = ['alex@reachops-demo.io', 'growth@reachops-demo.io'];
+          setAvailableAccounts(fallback);
+          setSelectedAccounts(prev => prev.length === 0 ? [fallback[0]] : prev);
+        } else {
+          setAvailableAccounts([]);
+          setSelectedAccounts([]);
+        }
       });
-  }, [campaignKey]);
+  }, [campaignKey, isDemo]);
 
   const removeAccount = (acc: string) => {
     setSelectedAccounts(selectedAccounts.filter(a => a !== acc));
@@ -224,35 +241,35 @@ export default function CampaignSettings() {
       id={id}
       onClick={onChange}
       className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 focus:outline-none ${
-        checked ? 'bg-[#9FA0FF]' : 'bg-slate-700'
+        checked ? 'bg-gradient-to-r from-[#059669] to-[#10b981] shadow-[0_0_10px_rgba(139,92,246,0.6)]' : 'bg-white/[0.1] border border-white/[0.1]'
       }`}
     >
       <span 
         className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform duration-200 ${
-          checked ? 'translate-x-4 bg-[#0c0d18]' : 'translate-x-0 bg-white'
+          checked ? 'translate-x-4 bg-white' : 'translate-x-0 bg-white'
         }`} 
       />
     </button>
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 animate-in fade-in duration-300 pb-28 text-slate-100 font-sans">
+    <div className="max-w-4xl mx-auto space-y-5 animate-in fade-in duration-300 pb-48 text-slate-100 font-sans">
       
       {/* Top Header */}
       <div className="flex items-center justify-between pb-1">
         <div>
-          <h2 className="text-sm font-semibold text-[#FFF3E3]">Campaign Settings</h2>
+          <h2 className="text-base font-bold text-white tracking-tight">Campaign Settings</h2>
           <p className="text-xs text-slate-400">
-            Configure your email campaign settings before sending
+            Configure your outreach schedule, accounts, deliverability safeguards, and rules
           </p>
         </div>
 
         <Button 
           onClick={handleSave} 
-          className="bg-[#9FA0FF] hover:bg-[#8889FF] text-[#0c0d18] font-bold text-xs h-8 px-4 shadow-md shadow-[#9FA0FF]/25"
+          className="btn-reachops-primary font-bold text-xs h-9 px-4 rounded-xl shadow-lg shadow-[#a31c1b]/25 border-none active:scale-95 transition-all cursor-pointer"
         >
           {isSaving ? 'Saving...' : savedSuccess ? (
-            <><CheckCircle2 className="w-3.5 h-3.5 mr-1 text-[#0c0d18]" /> Saved</>
+            <><CheckCircle2 className="w-3.5 h-3.5 mr-1 text-white" /> Saved</>
           ) : (
             <><Save className="w-3.5 h-3.5 mr-1" /> Save Settings</>
           )}
@@ -260,14 +277,24 @@ export default function CampaignSettings() {
       </div>
 
       {/* 1. Accounts To Use Section */}
-      <div className={`rounded-2xl bg-[#121319] border border-[#222430] transition-all shadow-sm relative ${accountDropdownOpen ? 'overflow-visible z-30' : 'overflow-hidden'}`}>
+      <div className="rounded-2xl bg-[#171717]/90 backdrop-blur-xl border border-white/[0.08] transition-all shadow-[0_8px_32px_rgba(0,0,0,0.25)] relative overflow-hidden">
         <div 
           onClick={() => setAccountsOpen(!accountsOpen)}
-          className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors rounded-t-2xl"
+          className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.03] transition-colors rounded-t-2xl"
         >
-          <div>
-            <h3 className="text-sm font-bold text-white tracking-tight">Accounts To Use</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Select one or more accounts to send emails from</p>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#10b981]/15 border border-[#10b981]/30 flex items-center justify-center text-emerald-400">
+              <Globe className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white tracking-tight">Accounts To Use</h3>
+                <span className="text-[11px] font-semibold text-emerald-400 bg-[#10b981]/15 border border-[#10b981]/25 px-2 py-0.5 rounded-full">
+                  {selectedAccounts.length} selected
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">Select one or more accounts to send emails from</p>
+            </div>
           </div>
           <button className="text-slate-400 hover:text-white p-1">
             {accountsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -275,98 +302,102 @@ export default function CampaignSettings() {
         </div>
 
         {accountsOpen && (
-          <div className="px-6 pb-6 pt-1">
-            <div className="relative">
-              <div 
-                onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                className="w-full min-h-[46px] p-2 bg-[#161724] border border-[#26283b] hover:border-[#35384e] rounded-xl flex flex-wrap items-center gap-2 cursor-pointer transition-colors"
-              >
-                {selectedAccounts.length === 0 ? (
-                  <span className="text-xs text-slate-500 pl-2 select-none">
-                    Select one or more sending accounts...
-                  </span>
-                ) : (
-                  selectedAccounts.map((acc) => (
-                    <span 
-                      key={acc}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1f2133] border border-[#2f324c] text-xs text-slate-200 font-medium"
-                      onClick={(e) => e.stopPropagation()}
+          <div className="px-6 pb-6 pt-2 space-y-4">
+            {/* Selected Accounts Pill Tags */}
+            {selectedAccounts.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                {selectedAccounts.map((acc) => (
+                  <span 
+                    key={acc}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10b981]/15 border border-[#10b981]/30 text-xs text-white font-medium shadow-sm"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                    <span>{acc}</span>
+                    <button 
+                      onClick={() => removeAccount(acc)}
+                      className="text-slate-400 hover:text-rose-400 transition-colors p-0.5 ml-0.5 cursor-pointer"
+                      title="Remove account"
                     >
-                      <span>{acc.length > 28 ? acc.slice(0, 25) + '...' : acc}</span>
-                      <button 
-                        onClick={() => removeAccount(acc)}
-                        className="text-slate-400 hover:text-rose-400 transition-colors p-0.5"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))
-                )}
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
 
-                <div className="ml-auto flex items-center pr-2 text-slate-400">
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${accountDropdownOpen ? 'rotate-180' : ''}`} />
+            {/* In-Card Available Sending Inboxes List - Never cut off by screen overflow */}
+            <div className="border border-white/[0.08] rounded-xl bg-[#080d1b]/60 overflow-hidden shadow-inner">
+              <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.08] flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Available Sending Inboxes ({availableAccounts.length})
+                </span>
+                <div className="flex items-center gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (selectedAccounts.length === availableAccounts.length) {
+                        setSelectedAccounts([]);
+                      } else {
+                        setSelectedAccounts([...availableAccounts]);
+                      }
+                    }}
+                    className="text-emerald-400 hover:text-[#B7ACFF] text-xs font-semibold hover:underline cursor-pointer transition-colors"
+                  >
+                    {selectedAccounts.length === availableAccounts.length ? 'Deselect All' : 'Select All'}
+                  </button>
                 </div>
               </div>
 
-              {accountDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setAccountDropdownOpen(false)} />
-                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#161724] border border-[#2b2e44] rounded-xl shadow-2xl py-2 z-50 text-xs max-h-64 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-[#222436] pb-2 mb-1">
-                      <span>Available Sending Inboxes ({availableAccounts.length})</span>
-                      <button 
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (selectedAccounts.length === availableAccounts.length) {
-                            setSelectedAccounts([]);
+              {availableAccounts.length === 0 ? (
+                <div className="px-4 py-8 text-center text-slate-400 text-xs">
+                  <p>No connected email accounts found.</p>
+                  <a 
+                    href="/email-accounts" 
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10b981]/15 hover:bg-[#10b981]/30 text-emerald-400 font-semibold text-xs border border-[#10b981]/30 transition-colors"
+                  >
+                    Connect an Email Account →
+                  </a>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/[0.05] max-h-72 overflow-y-auto">
+                  {availableAccounts.map(acc => {
+                    const isSelected = selectedAccounts.includes(acc);
+                    return (
+                      <div
+                        key={acc}
+                        onClick={() => {
+                          if (isSelected) {
+                            removeAccount(acc);
                           } else {
-                            setSelectedAccounts([...availableAccounts]);
+                            addAccount(acc);
                           }
                         }}
-                        className="text-[#9FA0FF] hover:underline normal-case font-semibold text-[11px] cursor-pointer"
+                        className={`px-4 py-3 hover:bg-white/[0.04] cursor-pointer flex items-center justify-between transition-colors ${
+                          isSelected ? 'bg-[#10b981]/10 text-white font-medium' : 'text-slate-300'
+                        }`}
                       >
-                        {selectedAccounts.length === availableAccounts.length ? 'Deselect All' : 'Select All'}
-                      </button>
-                    </div>
-                    {availableAccounts.length === 0 ? (
-                      <div className="px-4 py-3 text-center text-slate-400">
-                        No connected email accounts found.
-                      </div>
-                    ) : (
-                      availableAccounts.map(acc => {
-                        const isSelected = selectedAccounts.includes(acc);
-                        return (
-                          <div
-                            key={acc}
-                            onClick={() => {
-                              if (isSelected) {
-                                removeAccount(acc);
-                              } else {
-                                addAccount(acc);
-                              }
-                            }}
-                            className={`w-full text-left px-3.5 py-2.5 hover:bg-[#202235] cursor-pointer flex items-center justify-between transition-colors ${
-                              isSelected ? 'bg-[#1b1d2e] text-white font-medium' : 'text-slate-300'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                isSelected ? 'bg-[#9FA0FF] border-[#9FA0FF]' : 'border-slate-500 bg-[#12131a]'
-                              }`}>
-                                {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#0c0d18]" />}
-                              </div>
-                              <span className="font-mono text-xs truncate">{acc}</span>
-                            </div>
-                            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold shrink-0 ml-2">
-                              Connected
-                            </span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected ? 'bg-[#10b981] border-[#10b981]' : 'border-slate-500 bg-white/[0.04]'
+                          }`}>
+                            {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#080d1b]" />}
                           </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-mono text-xs truncate text-white">{acc}</span>
+                            <span className="text-[10px] text-slate-400">Daily send limit: 50/day</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Connected
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>
@@ -374,25 +405,25 @@ export default function CampaignSettings() {
       </div>
 
       {/* 2. Schedule & Limits Section */}
-      <div className="rounded-2xl bg-[#121319] border border-[#222430] overflow-hidden transition-all shadow-sm">
+      <div className="rounded-2xl bg-[#171717]/90 backdrop-blur-xl border border-white/[0.08] overflow-hidden transition-all shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
         <div 
           onClick={() => setScheduleOpen(!scheduleOpen)}
-          className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors"
+          className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.03] transition-colors"
         >
           <div className="flex-1">
             <h3 className="text-sm font-bold text-white tracking-tight">Schedule & Limits</h3>
             {!scheduleOpen ? (
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="px-2.5 py-1 rounded-lg bg-[#161724] border border-[#26283b] text-xs text-slate-300 font-medium">
+                <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-slate-300 font-medium">
                   1 schedule
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#161724] border border-[#26283b] text-xs text-slate-300 font-medium">
+                <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-slate-300 font-medium">
                   Start sending {startDate || 'Oct 12, 2026'}
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#161724] border border-[#26283b] text-xs text-slate-300 font-medium">
+                <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-slate-300 font-medium">
                   {stopDate ? `Stop sending ${stopDate}` : 'Never Stop sending'}
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#161724] border border-[#26283b] text-xs text-slate-300 font-medium">
+                <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-slate-300 font-medium">
                   {dailyLimit} emails daily
                 </span>
               </div>
@@ -411,21 +442,21 @@ export default function CampaignSettings() {
             <div>
               <button 
                 onClick={() => setShowScheduleModal(true)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#161724] hover:bg-[#1c1e2d] border border-[#26283b] text-xs font-semibold text-slate-200 transition-colors"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-xs font-semibold text-slate-200 transition-colors"
               >
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 <span>Create New Schedule</span>
               </button>
             </div>
 
-            <div className="p-5 rounded-xl bg-[#14151e] border border-[#232536] space-y-4">
+            <div className="p-5 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300">Schedule Name</label>
                 <input 
                   type="text"
                   value={scheduleName}
                   onChange={(e) => setScheduleName(e.target.value)}
-                  className="w-full bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
                 />
               </div>
 
@@ -435,7 +466,7 @@ export default function CampaignSettings() {
                   <select 
                     value={sendType}
                     onChange={(e) => setSendType(e.target.value)}
-                    className="w-full appearance-none bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
                   >
                     <option>At custom times</option>
                     <option>24 / 7 Anytime</option>
@@ -452,7 +483,7 @@ export default function CampaignSettings() {
                     <select 
                       value={fromTime}
                       onChange={(e) => setFromTime(e.target.value)}
-                      className="w-full appearance-none bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                      className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
                     >
                       <option>9:00 AM</option>
                       <option>9:30 AM</option>
@@ -469,7 +500,7 @@ export default function CampaignSettings() {
                     <select 
                       value={toTime}
                       onChange={(e) => setToTime(e.target.value)}
-                      className="w-full appearance-none bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                      className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
                     >
                       <option>4:00 PM</option>
                       <option>5:00 PM</option>
@@ -486,7 +517,7 @@ export default function CampaignSettings() {
                     <select 
                       value={timezone}
                       onChange={(e) => setTimezone(e.target.value)}
-                      className="w-full appearance-none bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer truncate pr-8"
+                      className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer truncate pr-8"
                     >
                       <option>Chennai, Kolkata, Mumbai, New Delhi (UTC+05:30)</option>
                       <option>Eastern Time (US & Canada) (UTC-05:00)</option>
@@ -510,7 +541,7 @@ export default function CampaignSettings() {
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggleDay(day)}
-                          className="w-4 h-4 rounded text-blue-600 bg-[#181926] border-[#303348] focus:ring-blue-500 focus:ring-offset-0"
+                          className="w-4 h-4 rounded text-emerald-500 bg-white/[0.05] border-white/[0.1] focus:ring-emerald-500 focus:ring-offset-0"
                         />
                         <span className={checked ? 'text-white font-medium' : 'text-slate-400'}>{day}</span>
                       </label>
@@ -520,31 +551,31 @@ export default function CampaignSettings() {
               </div>
             </div>
 
-            <div className="p-5 rounded-xl bg-[#14151e] border border-[#232536] space-y-4">
+            <div className="p-5 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-300">Start sending</label>
-                  <div className="flex items-center gap-2 bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2 text-xs text-slate-200">
+                  <div className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2 text-xs text-slate-200">
                     <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <input 
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="bg-transparent border-none text-white focus:outline-none w-full"
+                      className="bg-transparent border-none text-white focus:outline-none w-full [color-scheme:dark] cursor-pointer"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-300">Stop sending</label>
-                  <div className="flex items-center gap-2 bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2 text-xs text-slate-200">
+                  <div className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2 text-xs text-slate-200">
                     <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <input 
                       type="date"
                       value={stopDate}
                       onChange={(e) => setStopDate(e.target.value)}
                       placeholder="Never"
-                      className="bg-transparent border-none text-white focus:outline-none w-full placeholder-slate-500"
+                      className="bg-transparent border-none text-white focus:outline-none w-full placeholder-slate-500 [color-scheme:dark] cursor-pointer"
                     />
                   </div>
                 </div>
@@ -557,7 +588,7 @@ export default function CampaignSettings() {
                   type="number"
                   value={dailyLimit}
                   onChange={(e) => setDailyLimit(parseInt(e.target.value) || 0)}
-                  className="w-full bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 mt-1"
+                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 mt-1"
                 />
               </div>
             </div>
@@ -566,19 +597,19 @@ export default function CampaignSettings() {
       </div>
 
       {/* 3. CRM & Tags Section */}
-      <div className="rounded-2xl bg-[#121319] border border-[#222430] overflow-hidden transition-all shadow-sm">
+      <div className="rounded-2xl bg-[#171717]/90 backdrop-blur-xl border border-white/[0.08] overflow-hidden transition-all shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
         <div 
           onClick={() => setCrmOpen(!crmOpen)}
-          className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors"
+          className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.03] transition-colors"
         >
           <div className="flex-1">
             <h3 className="text-sm font-bold text-white tracking-tight">CRM & Tags</h3>
             {!crmOpen ? (
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="px-2.5 py-1 rounded-lg bg-[#161724] border border-[#26283b] text-xs text-slate-300 font-medium">
+                <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-slate-300 font-medium">
                   Owner: {owner}
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#161724] border border-[#26283b] text-xs text-slate-300 font-medium">
+                <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-slate-300 font-medium">
                   {tags.length > 0 ? `${tags.length} tags` : 'No tags'}
                 </span>
               </div>
@@ -602,7 +633,7 @@ export default function CampaignSettings() {
                   <select 
                     value={owner}
                     onChange={(e) => setOwner(e.target.value)}
-                    className="w-full appearance-none bg-[#161724] border border-[#26283b] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full appearance-none bg-white/[0.04] border border-white/[0.09] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
                   >
                     <option>Sathish Eppakayala</option>
                     <option>Victor Admin</option>
@@ -627,7 +658,7 @@ export default function CampaignSettings() {
                         setTagInput('');
                       }
                     }}
-                    className="w-full bg-[#161724] border border-[#26283b] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 placeholder-slate-500"
+                    className="w-full bg-white/[0.04] border border-white/[0.09] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 placeholder-slate-500"
                   />
                   <button 
                     onClick={() => {
@@ -645,7 +676,7 @@ export default function CampaignSettings() {
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-2">
                     {tags.map(t => (
-                      <span key={t} className="px-2.5 py-0.5 rounded-lg bg-[#9FA0FF]/20 border border-[#9FA0FF]/30 text-[#9FA0FF] text-[11px] flex items-center gap-1.5">
+                      <span key={t} className="px-2.5 py-0.5 rounded-lg bg-[#10b981]/15 border border-[#10b981]/30 text-emerald-400 text-[11px] flex items-center gap-1.5">
                         {t}
                         <button onClick={() => setTags(tags.filter(x => x !== t))} className="hover:text-white">×</button>
                       </span>
@@ -673,7 +704,7 @@ export default function CampaignSettings() {
           <div className="space-y-4 pt-1 animate-in fade-in duration-200">
             
             {/* 4A. Basic Deliverability */}
-            <div className="rounded-2xl bg-[#121319] border border-[#222430] overflow-hidden shadow-sm">
+            <div className="rounded-2xl bg-[#171717]/90 backdrop-blur-xl border border-white/[0.08] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
               <div 
                 onClick={() => setBasicDeliverabilityOpen(!basicDeliverabilityOpen)}
                 className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors"
@@ -682,10 +713,10 @@ export default function CampaignSettings() {
                   <h4 className="text-sm font-bold text-white tracking-tight">Basic Deliverability</h4>
                   {!basicDeliverabilityOpen ? (
                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span className="px-2.5 py-1 rounded-lg bg-[#161724] border border-[#26283b] text-xs text-slate-300 font-medium">
+                      <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.09] text-xs text-slate-300 font-medium">
                         Stop on reply: {stopOnReply ? 'Enabled' : 'Disabled'}
                       </span>
-                      <span className="px-2.5 py-1 rounded-lg bg-[#161724] border border-[#26283b] text-xs text-slate-300 font-medium">
+                      <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.09] text-xs text-slate-300 font-medium">
                         Open tracking: {openTracking ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
@@ -702,7 +733,7 @@ export default function CampaignSettings() {
                 <div className="px-6 pb-6 pt-1 space-y-3">
                   
                   {/* Stop sending emails on reply */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] flex items-center justify-between">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                     <div>
                       <h5 className="text-xs font-bold text-white">Stop sending emails on reply</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5">Stop sending emails to a lead if a response has been received</p>
@@ -714,7 +745,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Open Tracking */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <h5 className="text-xs font-bold text-white">Open Tracking</h5>
@@ -731,18 +762,18 @@ export default function CampaignSettings() {
                         type="checkbox" 
                         checked={linkTracking}
                         onChange={(e) => setLinkTracking(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#9FA0FF] bg-[#181926] border-[#303348] focus:ring-[#9FA0FF]"
+                        className="w-4 h-4 rounded text-emerald-400 bg-white/[0.05] border-white/[0.1] focus:ring-[#10b981]"
                       />
                       <span>Link tracking</span>
                     </label>
                   </div>
 
                   {/* Delivery Optimization [Recommended] */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <h5 className="text-xs font-bold text-white">Delivery Optimization</h5>
-                        <span className="px-2 py-0.5 rounded-full bg-[#D5E8E6]/20 text-[#D5E8E6] border border-[#D5E8E6]/30 text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 rounded-full bg-[#34D399]/20 text-[#34D399] border border-[#34D399]/30 text-[10px] font-semibold">
                           Recommended
                         </span>
                       </div>
@@ -755,7 +786,7 @@ export default function CampaignSettings() {
                           type="checkbox" 
                           checked={textOnlyAll}
                           onChange={(e) => setTextOnlyAll(e.target.checked)}
-                          className="w-4 h-4 rounded text-[#9FA0FF] bg-[#181926] border-[#303348] focus:ring-[#9FA0FF]"
+                          className="w-4 h-4 rounded text-emerald-400 bg-white/[0.05] border-white/[0.1] focus:ring-[#10b981]"
                         />
                         <span>Send emails as text-only (no HTML)</span>
                       </label>
@@ -765,10 +796,10 @@ export default function CampaignSettings() {
                           type="checkbox" 
                           checked={textOnlyFirst}
                           onChange={(e) => setTextOnlyFirst(e.target.checked)}
-                          className="w-4 h-4 rounded text-[#9FA0FF] bg-[#181926] border-[#303348] focus:ring-[#9FA0FF]"
+                          className="w-4 h-4 rounded text-emerald-400 bg-white/[0.05] border-white/[0.1] focus:ring-[#10b981]"
                         />
                         <span>Send first email as text-only</span>
-                        <span className="px-1.5 py-0.5 rounded bg-[#FFF3E3]/20 text-[#FFF3E3] text-[10px] font-bold">
+                        <span className="px-1.5 py-0.5 rounded bg-[#FBBF24]/20 text-[#FBBF24] text-[10px] font-bold">
                           Pro
                         </span>
                       </label>
@@ -780,7 +811,7 @@ export default function CampaignSettings() {
             </div>
 
             {/* 4B. Sending Rules (Exact match for Screenshots 1, 2, 3) */}
-            <div className="rounded-2xl bg-[#121319] border border-[#222430] overflow-hidden shadow-sm">
+            <div className="rounded-2xl bg-[#171717]/90 backdrop-blur-xl border border-white/[0.08] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
               <div 
                 onClick={() => setSendingRulesOpen(!sendingRulesOpen)}
                 className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors"
@@ -798,10 +829,10 @@ export default function CampaignSettings() {
                 <div className="px-6 pb-6 pt-1 space-y-3.5">
                   
                   {/* Time gap between emails */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3">
                     <h5 className="text-xs font-bold text-white">Time gap between emails</h5>
                     
-                    <div className="pt-2 border-t border-[#232536] grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="pt-2 border-t border-white/[0.08] grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs text-slate-400 block mb-1.5">Minimum time</label>
                         <div className="flex items-center gap-3">
@@ -809,7 +840,7 @@ export default function CampaignSettings() {
                             type="number"
                             value={minGapMinutes}
                             onChange={(e) => setMinGapMinutes(parseInt(e.target.value) || 0)}
-                            className="w-28 bg-[#181926] border border-[#2a2c3f] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                            className="w-28 bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
                           />
                           <span className="text-xs text-slate-400">minutes</span>
                         </div>
@@ -822,7 +853,7 @@ export default function CampaignSettings() {
                             type="number"
                             value={randomAdditionalMinutes}
                             onChange={(e) => setRandomAdditionalMinutes(parseInt(e.target.value) || 0)}
-                            className="w-28 bg-[#181926] border border-[#2a2c3f] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                            className="w-28 bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
                           />
                           <span className="text-xs text-slate-400">minutes</span>
                         </div>
@@ -831,21 +862,21 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Max new leads */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] flex items-center justify-between">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                     <span className="text-xs font-bold text-white">Max new leads</span>
                     <div className="flex items-center gap-3">
                       <input 
                         type="number"
                         value={maxNewLeadsPerDay}
                         onChange={(e) => setMaxNewLeadsPerDay(parseInt(e.target.value) || 0)}
-                        className="w-28 bg-[#181926] border border-[#2a2c3f] rounded-xl px-3 py-2 text-xs text-white text-center focus:outline-none focus:border-blue-500"
+                        className="w-28 bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white text-center focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
                       />
                       <span className="text-xs text-slate-400 min-w-[50px]">per day</span>
                     </div>
                   </div>
 
                   {/* Prioritize New Leads */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] flex items-center justify-between">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                     <div>
                       <h5 className="text-xs font-bold text-white">Prioritize New Leads</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5">
@@ -859,7 +890,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Auto optimize A/Z Testing */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3">
                     <div>
                       <h5 className="text-xs font-bold text-white">Auto optimize A/Z Testing</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5">
@@ -867,13 +898,13 @@ export default function CampaignSettings() {
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-[#232536] space-y-1.5">
+                    <div className="pt-2 border-t border-white/[0.08] space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Choose winning metric</label>
                       <div className="relative max-w-sm">
                         <select 
                           value={winningMetric}
                           onChange={(e) => setWinningMetric(e.target.value)}
-                          className="w-full appearance-none bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer pr-10"
+                          className="w-full appearance-none bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer pr-10"
                         >
                           <option value="Reply Rate">Reply Rate</option>
                           <option value="Open Rate">Open Rate</option>
@@ -888,7 +919,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Provider Matching */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-4">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-4">
                     <div>
                       <h5 className="text-xs font-bold text-white">Provider Matching</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5">
@@ -896,7 +927,7 @@ export default function CampaignSettings() {
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-[#232536] flex items-center justify-between">
+                    <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between">
                       <span className="text-xs text-slate-300">Enable provider matching for deliverability boost</span>
                       <ToggleSwitch 
                         checked={providerMatching} 
@@ -906,11 +937,11 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* ESP Routing [New] */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <h5 className="text-xs font-bold text-white">ESP Routing</h5>
-                        <span className="px-2 py-0.5 rounded bg-[#9FA0FF] text-[#0c0d18] text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded bg-[#10b981] text-white text-[10px] font-bold">
                           New
                         </span>
                       </div>
@@ -922,11 +953,11 @@ export default function CampaignSettings() {
                     {espRules.length > 0 && (
                       <div className="space-y-2 pt-1">
                         {espRules.map((rule) => (
-                          <div key={rule.id} className="flex items-center justify-between p-2.5 rounded-lg bg-[#181926] border border-[#2a2c3f] text-xs">
+                          <div key={rule.id} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.05] border border-white/[0.1] text-xs">
                             <span className="text-slate-300">If recipient uses <b>{rule.provider}</b>, send from <b>{rule.mailbox}</b></span>
                             <button 
                               onClick={() => setEspRules(espRules.filter(r => r.id !== rule.id))}
-                              className="text-slate-400 hover:text-[#FF7171] p-1"
+                              className="text-slate-400 hover:text-[#FB7185] p-1"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -938,7 +969,7 @@ export default function CampaignSettings() {
                     <div className="pt-1">
                       <button 
                         onClick={() => setShowAddEspModal(true)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#181926] hover:bg-[#1f2133] border border-[#2a2c3f] text-xs font-medium text-slate-200 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-medium text-slate-200 transition-colors"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Add rule</span>
@@ -947,7 +978,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Stop Campaign for Company on Reply */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-4">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-4">
                     <div>
                       <h5 className="text-xs font-bold text-white">Stop Campaign for Company on Reply</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5">
@@ -955,7 +986,7 @@ export default function CampaignSettings() {
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-[#232536] flex items-center justify-between">
+                    <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between">
                       <span className="text-xs text-slate-300">Enable company reply stop</span>
                       <ToggleSwitch 
                         checked={companyReplyStop} 
@@ -965,7 +996,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Stop Sending Emails on Auto-Reply */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-4">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-4">
                     <div>
                       <h5 className="text-xs font-bold text-white">Stop Sending Emails on Auto-Reply</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5">
@@ -973,7 +1004,7 @@ export default function CampaignSettings() {
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-[#232536] flex items-center justify-between">
+                    <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between">
                       <span className="text-xs text-slate-300">Stop on auto-reply</span>
                       <ToggleSwitch 
                         checked={stopOnAutoReply} 
@@ -983,7 +1014,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Insert Unsubscribe Link Header */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-4">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-4">
                     <div>
                       <h5 className="text-xs font-bold text-white">Insert Unsubscribe Link Header</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5">
@@ -991,7 +1022,7 @@ export default function CampaignSettings() {
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-[#232536] flex items-center justify-between">
+                    <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between">
                       <span className="text-xs text-slate-300">Insert unsubscribe link header</span>
                       <ToggleSwitch 
                         checked={unsubscribeLinkHeader} 
@@ -1001,7 +1032,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Allow Risky Emails (Screenshot 2 and 3) */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3.5">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3.5">
                     <div>
                       <h5 className="text-xs font-bold text-white">Allow Risky Emails</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
@@ -1009,7 +1040,7 @@ export default function CampaignSettings() {
                       </p>
                     </div>
 
-                    <div className="pt-2.5 border-t border-[#232536] flex items-center justify-between">
+                    <div className="pt-2.5 border-t border-white/[0.08] flex items-center justify-between">
                       <span className="text-xs text-slate-300">Enable risky emails</span>
                       <ToggleSwitch 
                         checked={enableRiskyEmails} 
@@ -1017,7 +1048,7 @@ export default function CampaignSettings() {
                       />
                     </div>
 
-                    <div className="pt-2.5 border-t border-[#232536] flex items-center justify-between">
+                    <div className="pt-2.5 border-t border-white/[0.08] flex items-center justify-between">
                       <span className="text-xs text-slate-300">Disable BounceProtect</span>
                       <ToggleSwitch 
                         checked={disableBounceProtect} 
@@ -1031,7 +1062,7 @@ export default function CampaignSettings() {
             </div>
 
             {/* 4C. Advanced Deliverability (Screenshot 4) */}
-            <div className="rounded-2xl bg-[#121319] border border-[#222430] overflow-hidden shadow-sm">
+            <div className="rounded-2xl bg-[#171717]/90 backdrop-blur-xl border border-white/[0.08] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
               <div 
                 onClick={() => setAdvDeliverabilityOpen(!advDeliverabilityOpen)}
                 className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors"
@@ -1049,7 +1080,7 @@ export default function CampaignSettings() {
                 <div className="px-6 pb-6 pt-1 space-y-3.5">
                   
                   {/* Limit emails per company Card */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3.5">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3.5">
                     <div>
                       <h5 className="text-xs font-bold text-white">Limit emails per company</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
@@ -1060,7 +1091,7 @@ export default function CampaignSettings() {
                     <div>
                       <button 
                         onClick={() => openActionModal('Advanced Deliverability Settings', 'Adjust domain rate limiting and max daily threshold per target domain.')}
-                        className="px-3.5 py-2 rounded-xl bg-[#181926] hover:bg-[#1f2133] border border-[#2a2c3f] text-xs font-semibold text-slate-200 transition-colors"
+                        className="px-3.5 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-semibold text-slate-200 transition-colors"
                       >
                         Update Advanced Deliverability Settings
                       </button>
@@ -1068,7 +1099,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Override setting for this campaign Card */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] flex items-center justify-between">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                     <span className="text-xs font-bold text-white">Override setting for this campaign</span>
                     <ToggleSwitch 
                       checked={overrideCampaignDeliverability} 
@@ -1077,7 +1108,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Deliverability boost Card */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3.5">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3.5">
                     <div>
                       <h5 className="text-xs font-bold text-white">Deliverability boost</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
@@ -1088,7 +1119,7 @@ export default function CampaignSettings() {
                     <div>
                       <button 
                         onClick={() => openActionModal('Deliverability Boost Workspace Defaults', 'Configure global pacing, sending delays, and adaptive inbox spacing across all active campaigns.')}
-                        className="px-3.5 py-2 rounded-xl bg-[#181926] hover:bg-[#1f2133] border border-[#2a2c3f] text-xs font-semibold text-slate-200 transition-colors"
+                        className="px-3.5 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-semibold text-slate-200 transition-colors"
                       >
                         Manage workspace defaults
                       </button>
@@ -1096,7 +1127,7 @@ export default function CampaignSettings() {
                   </div>
 
                   {/* Unlock more deliverability boosters Card */}
-                  <div className="p-4 rounded-xl bg-[#14151e] border border-[#232536] space-y-3.5">
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3.5">
                     <div>
                       <h5 className="text-xs font-bold text-white">Unlock more deliverability boosters</h5>
                       <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
@@ -1107,7 +1138,7 @@ export default function CampaignSettings() {
                     <div>
                       <button 
                         onClick={() => openActionModal('Workspace Deliverability Suite', 'Access global anti-spam throttles, MX provider rotation, and reputation guards.')}
-                        className="px-3.5 py-2 rounded-xl bg-[#181926] hover:bg-[#1f2133] border border-[#2a2c3f] text-xs font-semibold text-slate-200 transition-colors"
+                        className="px-3.5 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-semibold text-slate-200 transition-colors"
                       >
                         Open Advanced Deliverability
                       </button>
@@ -1119,7 +1150,7 @@ export default function CampaignSettings() {
             </div>
 
             {/* 4D. CC & BCC Recipients (Screenshot 5) */}
-            <div className="rounded-2xl bg-[#121319] border border-[#222430] overflow-hidden shadow-sm">
+            <div className="rounded-2xl bg-[#171717]/90 backdrop-blur-xl border border-white/[0.08] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
               <div 
                 onClick={() => setCcBccOpen(!ccBccOpen)}
                 className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-[#161722]/50 transition-colors"
@@ -1142,7 +1173,7 @@ export default function CampaignSettings() {
                       placeholder="email@example.com, email2@example.com"
                       value={ccRecipients}
                       onChange={(e) => setCcRecipients(e.target.value)}
-                      className="w-full bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-y"
+                      className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 resize-y"
                     />
                   </div>
 
@@ -1153,7 +1184,7 @@ export default function CampaignSettings() {
                       placeholder="email@example.com, email2@example.com"
                       value={bccRecipients}
                       onChange={(e) => setBccRecipients(e.target.value)}
-                      className="w-full bg-[#181926] border border-[#2a2c3f] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-y"
+                      className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30 resize-y"
                     />
                   </div>
                 </div>
@@ -1165,9 +1196,9 @@ export default function CampaignSettings() {
       </div>
 
       {/* Floating Bottom Quick Save Toolbar */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-[#161724]/90 backdrop-blur-md border border-[#2e3146] shadow-2xl rounded-2xl px-5 py-2.5 flex items-center gap-4">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/[0.04]/90 backdrop-blur-md border border-white/[0.1] shadow-2xl rounded-2xl px-5 py-2.5 flex items-center gap-4">
         <div className="flex items-center gap-2 text-xs text-slate-300">
-          <div className="w-2 h-2 rounded-full bg-[#D5E8E6] animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse" />
           <span>Settings sync ready</span>
         </div>
 
@@ -1175,10 +1206,10 @@ export default function CampaignSettings() {
 
         <Button 
           onClick={handleSave} 
-          className="bg-[#9FA0FF] hover:bg-[#8889FF] text-[#0c0d18] font-bold text-xs h-8 px-4 shadow-md shadow-[#9FA0FF]/25"
+          className="btn-reachops-primary text-white font-bold text-xs h-8 px-4 shadow-md shadow-emerald-500/20"
         >
           {isSaving ? 'Saving...' : savedSuccess ? (
-            <><CheckCircle2 className="w-3.5 h-3.5 mr-1 text-[#0c0d18]" /> Saved</>
+            <><CheckCircle2 className="w-3.5 h-3.5 mr-1 text-white" /> Saved</>
           ) : (
             <><Save className="w-3.5 h-3.5 mr-1" /> Save Settings</>
           )}
@@ -1189,9 +1220,9 @@ export default function CampaignSettings() {
       {showScheduleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#14151f] border border-[#292c3f] rounded-2xl w-full max-w-md shadow-2xl p-6 text-white space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#232536]">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-400" />
+                <Clock className="w-4 h-4 text-emerald-400" />
                 <h3 className="text-sm font-bold">Create New Sending Schedule</h3>
               </div>
               <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-white">
@@ -1212,7 +1243,7 @@ export default function CampaignSettings() {
                       setTimezone('Eastern Time (US & Canada) (UTC-05:00)');
                       setShowScheduleModal(false);
                     }}
-                    className="p-2.5 rounded-xl bg-[#181926] border border-[#2a2c3f] hover:border-blue-500 text-left"
+                    className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.1] hover:border-emerald-500/40 text-left"
                   >
                     <div className="font-semibold text-white">US Eastern</div>
                     <div className="text-[10px] text-slate-400">9:00 AM - 5:00 PM EST</div>
@@ -1227,7 +1258,7 @@ export default function CampaignSettings() {
                       setTimezone('London, Edinburgh (UTC+00:00)');
                       setShowScheduleModal(false);
                     }}
-                    className="p-2.5 rounded-xl bg-[#181926] border border-[#2a2c3f] hover:border-blue-500 text-left"
+                    className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.1] hover:border-emerald-500/40 text-left"
                   >
                     <div className="font-semibold text-white">Europe / UK</div>
                     <div className="text-[10px] text-slate-400">9:00 AM - 6:00 PM GMT</div>
@@ -1253,9 +1284,9 @@ export default function CampaignSettings() {
       {showAddEspModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#14151f] border border-[#292c3f] rounded-2xl w-full max-w-md shadow-2xl p-6 text-white space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#232536]">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-400" />
+                <Sliders className="w-4 h-4 text-emerald-400" />
                 <h3 className="text-sm font-bold">Add ESP Routing Rule</h3>
               </div>
               <button onClick={() => setShowAddEspModal(false)} className="text-slate-400 hover:text-white">
@@ -1273,7 +1304,7 @@ export default function CampaignSettings() {
                 <select 
                   value={selectedEspRecipient}
                   onChange={(e) => setSelectedEspRecipient(e.target.value)}
-                  className="w-full bg-[#181926] border border-[#2a2c3f] rounded-xl px-3 py-2 text-white"
+                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white"
                 >
                   <option value="Google / Gmail">Google / Gmail (ASPMX.L.GOOGLE.COM)</option>
                   <option value="Microsoft 365 / Outlook">Microsoft 365 / Outlook (mail.protection.outlook.com)</option>
@@ -1287,7 +1318,7 @@ export default function CampaignSettings() {
                 <select 
                   value={selectedEspSender}
                   onChange={(e) => setSelectedEspSender(e.target.value)}
-                  className="w-full bg-[#181926] border border-[#2a2c3f] rounded-xl px-3 py-2 text-white"
+                  className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-3 py-2 text-white"
                 >
                   <option value="Google Workspace">Google Workspace Inboxes</option>
                   <option value="Microsoft 365">Microsoft 365 Inboxes</option>
@@ -1312,7 +1343,7 @@ export default function CampaignSettings() {
                   ]);
                   setShowAddEspModal(false);
                 }}
-                className="bg-[#9FA0FF] hover:bg-[#8889FF] text-[#0c0d18] font-bold text-xs"
+                className="btn-reachops-primary text-white font-bold text-xs"
               >
                 Save Rule
               </Button>
@@ -1325,9 +1356,9 @@ export default function CampaignSettings() {
       {showWorkspaceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#14151f] border border-[#292c3f] rounded-2xl w-full max-w-lg shadow-2xl p-6 text-white space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#232536]">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#D5E8E6]" />
+                <ShieldCheck className="w-5 h-5 text-[#34D399]" />
                 <h3 className="text-sm font-bold">{modalTitle}</h3>
               </div>
               <button onClick={() => setShowWorkspaceModal(false)} className="text-slate-400 hover:text-white">
@@ -1339,7 +1370,7 @@ export default function CampaignSettings() {
               {modalDescription}
             </p>
 
-            <div className="p-4 rounded-xl bg-[#181926] border border-[#26283b] space-y-3 text-xs">
+            <div className="p-4 rounded-xl bg-white/[0.05] border border-white/[0.09] space-y-3 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-slate-300">Domain-level daily send limit:</span>
                 <div className="flex items-center gap-1.5">
@@ -1368,7 +1399,7 @@ export default function CampaignSettings() {
 
               <div className="flex items-center justify-between pt-1">
                 <span className="text-slate-300">Automated DNS warmup status:</span>
-                <span className="font-semibold text-[#D5E8E6] flex items-center gap-1">
+                <span className="font-semibold text-[#34D399] flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" /> 100% Reputable
                 </span>
               </div>
@@ -1377,7 +1408,7 @@ export default function CampaignSettings() {
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button 
                 onClick={() => setShowWorkspaceModal(false)}
-                className="bg-[#9FA0FF] hover:bg-[#8889FF] text-[#0c0d18] font-bold text-xs px-4"
+                className="btn-reachops-primary text-white font-bold text-xs px-4"
               >
                 Apply Changes
               </Button>

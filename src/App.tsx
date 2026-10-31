@@ -25,14 +25,19 @@ import CampaignSchedule from './pages/campaigns/tabs/CampaignSchedule';
 import CampaignActivity from './pages/campaigns/tabs/CampaignActivity';
 import CampaignSettings from './pages/campaigns/tabs/CampaignSettings';
 import CampaignSubsequences from './pages/campaigns/tabs/CampaignSubsequences';
-
 import SuppressionList from './pages/SuppressionList';
+import EmailOutreachAutomation from './pages/seo/EmailOutreachAutomation';
+import GoogleSheetsAutomation from './pages/seo/GoogleSheetsAutomation';
+import DeliverabilityMonitoring from './pages/seo/DeliverabilityMonitoring';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/email-outreach-automation" element={<EmailOutreachAutomation />} />
+        <Route path="/google-sheets-email-automation" element={<GoogleSheetsAutomation />} />
+        <Route path="/email-deliverability-monitoring" element={<DeliverabilityMonitoring />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         

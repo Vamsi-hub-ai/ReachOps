@@ -467,7 +467,7 @@ async function runTests() {
       assert.equal(allLogs.includes(secretAttempt), false, 'Logs must NOT contain attempted passwords');
       assert.equal(allLogs.includes('CorrectPassword123!'), false, 'Logs must NOT contain correct password');
       assert.equal(allLogs.includes('[DEBUG] auth-login received body:'), false, 'Legacy debug body logging must be removed');
-      
+
       // Check that logs emitted are structured JSON
       for (const line of capturedLogs) {
         assert.doesNotThrow(() => JSON.parse(line), `Log line should be valid JSON: "${line}"`);

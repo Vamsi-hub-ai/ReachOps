@@ -124,20 +124,20 @@ export default function CampaignList() {
   });
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-12 animate-in fade-in duration-300 text-slate-100 select-none">
+    <div className="space-y-5 max-w-7xl mx-auto pb-14 animate-in fade-in duration-300 text-slate-100 select-none">
       
-      {/* Top Toolbar matching Image 3 */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-2">
+      {/* Top Glass Toolbar */}
+      <div className="glass-surface p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3.5">
         
         {/* Left Filters & Search */}
-        <div className="flex items-center gap-2 flex-wrap flex-1">
+        <div className="flex items-center gap-2.5 flex-wrap flex-1">
           {/* Search Input */}
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input 
               type="text"
-              placeholder="Search" 
-              className="w-full pl-9 pr-3 py-1.5 bg-[#0f1118] border border-[#202334] rounded-lg text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#0080FF] transition-all"
+              placeholder="Search campaigns..." 
+              className="w-full pl-9 pr-3.5 py-2 bg-white/[0.04] border border-white/[0.09] hover:border-white/[0.16] rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition-all shadow-inner"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -148,14 +148,14 @@ export default function CampaignList() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none bg-[#0f1118] border border-[#202334] hover:border-[#2e3349] text-xs font-medium text-slate-300 rounded-lg pl-3 pr-7 py-1.5 cursor-pointer focus:outline-none transition-colors"
+              className="appearance-none bg-white/[0.04] border border-white/[0.09] hover:border-white/[0.16] text-xs font-semibold text-slate-300 rounded-xl pl-3.5 pr-8 py-2 cursor-pointer focus:outline-none focus:border-emerald-500 transition-colors"
             >
-              <option value="All statuses">All statuses</option>
-              <option value="Running">Running</option>
-              <option value="Draft">Draft</option>
-              <option value="Paused">Paused</option>
+              <option value="All statuses" className="bg-[#171717] text-white">All statuses</option>
+              <option value="Running" className="bg-[#171717] text-white">Running</option>
+              <option value="Draft" className="bg-[#171717] text-white">Draft</option>
+              <option value="Paused" className="bg-[#171717] text-white">Paused</option>
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
           </div>
 
           {/* Tags Filter Dropdown */}
@@ -163,168 +163,168 @@ export default function CampaignList() {
             <select
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
-              className="appearance-none bg-[#0f1118] border border-[#202334] hover:border-[#2e3349] text-xs font-medium text-slate-300 rounded-lg pl-3 pr-7 py-1.5 cursor-pointer focus:outline-none transition-colors"
+              className="appearance-none bg-white/[0.04] border border-white/[0.09] hover:border-white/[0.16] text-xs font-semibold text-slate-300 rounded-xl pl-3.5 pr-8 py-2 cursor-pointer focus:outline-none focus:border-emerald-500 transition-colors"
             >
-              <option value="All tags">All tags</option>
-              <option value="Inbound">Inbound</option>
-              <option value="Outbound">Outbound</option>
-              <option value="Enterprise">Enterprise</option>
+              <option value="All tags" className="bg-[#171717] text-white">All tags</option>
+              <option value="Inbound" className="bg-[#171717] text-white">Inbound</option>
+              <option value="Outbound" className="bg-[#171717] text-white">Outbound</option>
+              <option value="Enterprise" className="bg-[#171717] text-white">Enterprise</option>
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
           </div>
         </div>
 
-        {/* Right Actions: Settings, Automate Pill, + Create New matching Image 3 */}
+        {/* Right Actions: Settings, Automate Pill, + Create New */}
         <div className="flex items-center gap-2.5">
           {/* Settings button */}
           <button 
             onClick={() => navigate('/settings')}
-            className="p-2 rounded-lg bg-[#0f1118] border border-[#202334] hover:border-[#2e3349] text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.09] hover:bg-white/[0.08] hover:border-white/[0.16] text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
             title="Campaign Defaults"
           >
-            <Settings className="w-3.5 h-3.5" />
+            <Settings className="w-4 h-4" />
           </button>
 
-          {/* Automate your outreach button with top cyan border glow */}
+          {/* Automate your outreach button with top emerald border glow */}
           <button 
             onClick={() => navigate('/campaigns/new')}
-            className="relative px-3.5 py-1.5 rounded-lg bg-[#0f1118] border border-[#202334] text-xs font-medium text-slate-200 hover:text-white flex items-center gap-1.5 overflow-hidden transition-all group cursor-pointer"
+            className="relative px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.09] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2 overflow-hidden transition-all group cursor-pointer shadow-sm active:scale-95"
           >
-            <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-            <Bot className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-emerald-400 via-[#10b981] to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <Bot className="w-3.5 h-3.5 text-emerald-400" />
             <span>Automate your outreach</span>
           </button>
 
-          {/* Solid blue Create New button */}
+          {/* Solid violet Create New button matching design system */}
           <button
             onClick={() => navigate('/campaigns/new')}
-            className="px-4 py-1.5 rounded-lg bg-[#0080FF] hover:bg-[#0070E0] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#0080FF]/25 hover:shadow-[#0080FF]/40 active:scale-95 transition-all cursor-pointer"
+            className="btn-reachops-primary px-4 py-2 text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#a31c1b]/25 active:scale-95 transition-all cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Create New</span>
           </button>
         </div>
 
       </div>
 
-      {/* Campaigns Table matching Image 3 */}
-      <div className="w-full bg-[#0a0c13] border border-[#1a1d2b] rounded-xl overflow-hidden shadow-sm">
+      {/* Campaigns Glass Table */}
+      <div className="glass-surface overflow-hidden">
         <div className="overflow-x-auto min-h-[350px]">
           <table className="w-full text-xs text-left">
-            <thead className="text-[11px] font-bold text-slate-400 uppercase bg-[#08090f] border-b border-[#181a26]">
+            <thead className="text-[11px] font-bold text-slate-400 uppercase bg-white/[0.03] border-b border-white/[0.08]">
               <tr>
-                <th className="px-4 py-3.5 w-10 text-center">
+                <th className="px-5 py-3.5 w-12 text-center">
                   <input
                     type="checkbox"
                     checked={filteredCampaigns.length > 0 && selectedIds.length === filteredCampaigns.length}
                     onChange={toggleSelectAll}
-                    className="w-3.5 h-3.5 rounded bg-[#12141e] border-[#2b2e40] text-[#0080FF] focus:ring-0 cursor-pointer"
+                    className="w-3.5 h-3.5 rounded bg-white/[0.08] border-white/[0.2] text-emerald-400 focus:ring-0 cursor-pointer accent-emerald-500"
                   />
                 </th>
-                <th className="px-4 py-3.5 font-bold tracking-wider">
-                  <div className="flex items-center gap-1">
+                <th className="px-5 py-3.5 font-bold tracking-wider">
+                  <div className="flex items-center gap-1 text-slate-300">
                     <span>NAME</span>
                     <ChevronDown className="w-3 h-3 text-slate-500" />
                   </div>
                 </th>
-                <th className="px-4 py-3.5 font-bold tracking-wider">
-                  <div className="flex items-center gap-1">
+                <th className="px-5 py-3.5 font-bold tracking-wider">
+                  <div className="flex items-center gap-1 text-slate-300">
                     <span>TYPE</span>
                     <ChevronDown className="w-3 h-3 text-slate-500" />
                   </div>
                 </th>
-                <th className="px-4 py-3.5 font-bold tracking-wider">
-                  <div className="flex items-center gap-1">
+                <th className="px-5 py-3.5 font-bold tracking-wider">
+                  <div className="flex items-center gap-1 text-slate-300">
                     <span>STATUS</span>
                     <ChevronDown className="w-3 h-3 text-slate-500" />
                   </div>
                 </th>
-                <th className="px-4 py-3.5 font-bold tracking-wider">TAGS</th>
-                <th className="px-4 py-3.5 font-bold tracking-wider">PROGRESS</th>
-                <th className="px-4 py-3.5 font-bold tracking-wider">ACTIVITY</th>
-                <th className="px-4 py-3.5 font-bold tracking-wider">OUTCOME</th>
-                <th className="px-4 py-3.5 font-bold tracking-wider">GOAL</th>
-                <th className="px-4 py-3.5 w-12 text-right"></th>
+                <th className="px-5 py-3.5 font-bold tracking-wider text-slate-300">TAGS</th>
+                <th className="px-5 py-3.5 font-bold tracking-wider text-slate-300">PROGRESS</th>
+                <th className="px-5 py-3.5 font-bold tracking-wider text-slate-300">ACTIVITY</th>
+                <th className="px-5 py-3.5 font-bold tracking-wider text-slate-300">OUTCOME</th>
+                <th className="px-5 py-3.5 font-bold tracking-wider text-slate-300">GOAL</th>
+                <th className="px-5 py-3.5 w-12 text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#151724]">
+            <tbody className="divide-y divide-white/[0.05]">
               {filteredCampaigns.map((campaign) => {
                 const isChecked = selectedIds.includes(campaign.id);
 
                 return (
                   <tr 
                     key={campaign.id} 
-                    className="hover:bg-[#0f111a] transition-colors group"
+                    className="hover:bg-white/[0.035] transition-colors group"
                   >
                     {/* Checkbox */}
-                    <td className="px-4 py-3.5 text-center">
+                    <td className="px-5 py-4 text-center">
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggleSelectOne(campaign.id)}
-                        className="w-3.5 h-3.5 rounded bg-[#12141e] border-[#2b2e40] text-[#0080FF] focus:ring-0 cursor-pointer"
+                        className="w-3.5 h-3.5 rounded bg-white/[0.08] border-white/[0.2] text-emerald-400 focus:ring-0 cursor-pointer accent-emerald-500"
                       />
                     </td>
 
                     {/* NAME */}
-                    <td className="px-4 py-3.5">
+                    <td className="px-5 py-4">
                       <Link 
                         to={`/campaigns/${campaign.id}/editor`} 
-                        className="font-bold text-white hover:text-[#0080FF] transition-colors text-xs"
+                        className="font-bold text-white hover:text-emerald-400 transition-colors text-xs flex items-center gap-2"
                       >
-                        {campaign.name}
+                        <span>{campaign.name}</span>
                       </Link>
                     </td>
 
                     {/* TYPE */}
-                    <td className="px-4 py-3.5">
+                    <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5 text-slate-300">
-                        <Send className="w-3 h-3 text-slate-400 rotate-[-20deg]" />
-                        <span>Cold Outre...</span>
+                        <Send className="w-3 h-3 text-emerald-400 rotate-[-20deg]" />
+                        <span>Cold Outreach</span>
                       </div>
                     </td>
 
                     {/* STATUS */}
-                    <td className="px-4 py-3.5">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                         campaign.status === 'Running' || campaign.status === 'ACTIVE'
-                          ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30'
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                           : campaign.status === 'Paused' || campaign.status === 'PAUSED'
                           ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                          : 'bg-[#181a26] text-slate-400 border border-[#242738]'
+                          : 'bg-white/[0.05] text-slate-400 border border-white/[0.09]'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${
                           campaign.status === 'Running' || campaign.status === 'ACTIVE'
-                            ? 'bg-[#10B981]'
+                            ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]'
                             : campaign.status === 'Paused' || campaign.status === 'PAUSED'
-                            ? 'bg-amber-400'
-                            : 'bg-slate-500'
+                            ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]'
+                            : 'bg-slate-400'
                         }`} />
                         <span>{campaign.status}</span>
                       </span>
                     </td>
 
                     {/* TAGS */}
-                    <td className="px-4 py-3.5 text-slate-500">-</td>
+                    <td className="px-5 py-4 text-slate-500">-</td>
 
                     {/* PROGRESS */}
-                    <td className="px-4 py-3.5 text-slate-500">-</td>
+                    <td className="px-5 py-4 text-slate-500">-</td>
 
                     {/* ACTIVITY */}
-                    <td className="px-4 py-3.5 text-slate-300 font-medium">
+                    <td className="px-5 py-4 text-slate-300 font-medium">
                       Sent <span className="text-white font-bold">{campaign.sent ?? 0}</span>
                     </td>
 
                     {/* OUTCOME */}
-                    <td className="px-4 py-3.5 text-slate-300 font-medium">
-                      Opportunities <span className="text-white font-bold">{campaign.replies ?? 0}</span>
+                    <td className="px-5 py-4 text-slate-300 font-medium">
+                      Replies <span className="text-white font-bold">{campaign.replies ?? 0}</span>
                     </td>
 
                     {/* GOAL */}
-                    <td className="px-4 py-3.5 text-slate-500">-</td>
+                    <td className="px-5 py-4 text-slate-500">-</td>
 
                     {/* Actions Menu */}
-                    <td className="px-4 py-3.5 text-right">
+                    <td className="px-5 py-4 text-right">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -335,7 +335,7 @@ export default function CampaignList() {
                             setDropdownAnchor({ id: campaign.id, rect });
                           }
                         }}
-                        className="p-1 rounded text-slate-500 hover:text-white hover:bg-[#181b28] transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
@@ -348,8 +348,8 @@ export default function CampaignList() {
                 <tr>
                   <td colSpan={10} className="px-6 py-16 text-center text-slate-400">
                     <div className="max-w-md mx-auto flex flex-col items-center">
-                      <div className="w-12 h-12 rounded-2xl bg-[#0f1118] border border-[#202334] flex items-center justify-center mb-3 text-[#0080FF]">
-                        <Send className="w-5 h-5" />
+                      <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.09] flex items-center justify-center mb-3 text-emerald-400 shadow-lg shadow-[#a31c1b]/25">
+                        <Send className="w-5 h-5 -rotate-12" />
                       </div>
                       <p className="text-sm font-bold text-white">No campaigns found</p>
                       <p className="text-xs text-slate-400 mt-1 mb-5">
@@ -357,9 +357,9 @@ export default function CampaignList() {
                       </p>
                       <button 
                         onClick={() => navigate('/campaigns/new')}
-                        className="px-4 py-2 rounded-lg bg-[#0080FF] hover:bg-[#0070E0] text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-[#0080FF]/30 cursor-pointer"
+                        className="btn-reachops-primary px-4 py-2 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-[#a31c1b]/25"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4 stroke-[2.5]" />
                         <span>Create Campaign</span>
                       </button>
                     </div>
@@ -378,17 +378,17 @@ export default function CampaignList() {
           <div 
             style={{
               position: 'fixed',
-              top: `${dropdownAnchor.rect.bottom + 4}px`,
-              left: `${Math.min(window.innerWidth - 180, dropdownAnchor.rect.right - 170)}px`,
+              top: `${dropdownAnchor.rect.bottom + 6}px`,
+              left: `${Math.min(window.innerWidth - 190, dropdownAnchor.rect.right - 180)}px`,
             }}
-            className="w-44 bg-[#12141e] border border-[#242738] rounded-xl shadow-2xl py-1 z-50 text-xs animate-in fade-in zoom-in-95 text-slate-300"
+            className="w-48 bg-[#171717]/95 backdrop-blur-2xl border border-white/[0.1] rounded-2xl shadow-2xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 text-slate-200"
           >
             <button
               onClick={() => {
                 navigate(`/campaigns/${dropdownAnchor.id}/editor`);
                 setDropdownAnchor(null);
               }}
-              className="w-full text-left px-3 py-2 hover:bg-[#1a1d2c] hover:text-white flex items-center gap-2"
+              className="w-full text-left px-3.5 py-2 hover:bg-white/[0.06] hover:text-white flex items-center gap-2.5 transition-colors"
             >
               <Edit2 className="w-3.5 h-3.5 text-slate-400" />
               <span>Edit Sequence</span>
@@ -400,7 +400,7 @@ export default function CampaignList() {
                   toggleCampaignStatus(target.id, target.status === 'Running' ? 'Paused' : 'Running');
                 }
               }}
-              className="w-full text-left px-3 py-2 hover:bg-[#1a1d2c] hover:text-white flex items-center gap-2"
+              className="w-full text-left px-3.5 py-2 hover:bg-white/[0.06] hover:text-white flex items-center gap-2.5 transition-colors"
             >
               {campaigns.find(c => c.id === dropdownAnchor.id)?.status === 'Running' ? (
                 <>
@@ -419,17 +419,17 @@ export default function CampaignList() {
                 const target = campaigns.find(c => c.id === dropdownAnchor.id);
                 if (target) duplicateCampaign(target);
               }}
-              className="w-full text-left px-3 py-2 hover:bg-[#1a1d2c] hover:text-white flex items-center gap-2"
+              className="w-full text-left px-3.5 py-2 hover:bg-white/[0.06] hover:text-white flex items-center gap-2.5 transition-colors"
             >
               <Copy className="w-3.5 h-3.5 text-slate-400" />
               <span>Duplicate</span>
             </button>
-            <div className="border-t border-[#202334] my-1" />
+            <div className="border-t border-white/[0.06] my-1" />
             <button
               onClick={() => deleteCampaign(dropdownAnchor.id)}
-              className="w-full text-left px-3 py-2 text-[#FF7171] hover:bg-[#FF7171]/10 flex items-center gap-2"
+              className="w-full text-left px-3.5 py-2 text-[#FB7185] hover:bg-[#FB7185]/10 flex items-center gap-2.5 transition-colors"
             >
-              <Trash2 className="w-3.5 h-3.5 text-[#FF7171]" />
+              <Trash2 className="w-3.5 h-3.5 text-[#FB7185]" />
               <span>Delete Campaign</span>
             </button>
           </div>

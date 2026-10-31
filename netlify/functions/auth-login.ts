@@ -119,7 +119,7 @@ export const handler: Handler = async (event): Promise<HandlerResponse> => {
     }
 
     // Demo account fallback: guarantee login works in serverless even if SQLite/PostgreSQL is unseeded
-    if (!isMatch && email === 'demo@reachops.com' && password === 'Demo@123') {
+    if (!isMatch && (email === 'demo@reachops.com' || email === 'demo') && (password.trim() === 'Demo@123' || password === 'Demo@123')) {
       user = {
         id: 'demo-user-id',
         name: 'Demo User',
@@ -187,7 +187,7 @@ export const handler: Handler = async (event): Promise<HandlerResponse> => {
     }));
 
     // Resilient fallback for demo user if any unexpected exception occurred
-    if ((email === 'demo@reachops.com' || email === 'demo') && password === 'Demo@123') {
+    if ((email === 'demo@reachops.com' || email === 'demo') && (password.trim() === 'Demo@123' || password === 'Demo@123')) {
       const secret = process.env.SESSION_SECRET || 'fallback-secret-key';
       const token = jwt.sign({ userId: 'demo-user-id', email: 'demo@reachops.com' }, secret, { expiresIn: '7d' });
       const sessionCookie = cookie.serialize('session', token, {

@@ -1,6 +1,15 @@
 import { Handler } from '@netlify/functions';
 import prisma from '../lib/prisma';
-import { getAuthContext, unauthorizedResponse, forbiddenResponse } from '../lib/auth';
+import { getAuthContext, unauthorizedResponse } from '../lib/auth';
+
+const DEMO_CAMPAIGN_MAP: Record<string, string> = {
+  'demo-c1': 'demo-camp-inbound-nurture',
+  'demo-c2': 'demo-camp-beta-launch',
+  'demo-c3': 'demo-camp-enterprise-saas',
+  'demo-c4': 'demo-camp-midmarket-warmup',
+  'demo-c5': 'demo-camp-vp-execs',
+  'tga-sales': 'demo-camp-vp-execs',
+};
 
 export const handler: Handler = async (event) => {
   const method = event.httpMethod;
@@ -11,7 +20,7 @@ export const handler: Handler = async (event) => {
       return unauthorizedResponse('Unauthorized');
     }
 
-    const { workspaceId, workspaceIds } = auth;
+    const { workspaceId, workspaceIds, isDemo } = auth;
 
     if (method === 'GET') {
       let formatted: any[] = [];
@@ -35,10 +44,10 @@ export const handler: Handler = async (event) => {
             name: c.name,
             status: c.status === 'ACTIVE' ? 'Running' : c.status === 'DRAFT' ? 'Draft' : 'Paused',
             created: new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            prospects: c.prospects.length,
-            sent: sent,
-            replies: replies,
-            replyRate: rate,
+            prospects: c.prospects.length || (isDemo ? 12 : 0),
+            sent: sent || (isDemo ? 8 : 0),
+            replies: replies || (isDemo ? 3 : 0),
+            replyRate: sent > 0 ? rate : (isDemo ? '37.5%' : '0%'),
             nextSend: c.status === 'ACTIVE' ? 'Today, 14:00 (Rotated)' : 'Scheduled',
           };
         });
@@ -46,10 +55,10 @@ export const handler: Handler = async (event) => {
         console.warn('Prisma campaigns query failed:', dbErr?.message);
       }
 
-      if (formatted.length === 0 && auth.isDemo) {
+      if (formatted.length === 0 && isDemo) {
         formatted = [
           {
-            id: 'demo-c1',
+            id: 'demo-camp-inbound-nurture',
             name: '[DEMO] Inbound High-Intent Signups Nurture',
             status: 'Running',
             created: 'Oct 23, 2026',
@@ -60,7 +69,7 @@ export const handler: Handler = async (event) => {
             nextSend: 'Today, 14:00 (Rotated)',
           },
           {
-            id: 'demo-c2',
+            id: 'demo-camp-beta-launch',
             name: '[DEMO] Product Hunt Beta Launch Sequence',
             status: 'Running',
             created: 'Oct 24, 2026',
@@ -71,37 +80,37 @@ export const handler: Handler = async (event) => {
             nextSend: 'Today, 15:30 (Rotated)',
           },
           {
-            id: 'demo-c3',
-            name: '[DEMO] Enterprise Decision Makers Cold Outreach',
-            status: 'Paused',
+            id: 'demo-camp-enterprise-saas',
+            name: '[DEMO] Enterprise SaaS Outbound — Q4 Pipeline',
+            status: 'Running',
             created: 'Oct 25, 2026',
+            prospects: 24,
+            sent: 16,
+            replies: 6,
+            replyRate: '37.5%',
+            nextSend: 'Today, 16:00 (Rotated)',
+          },
+          {
+            id: 'demo-camp-midmarket-warmup',
+            name: '[DEMO] Mid-Market Product Qualified Lead Warmup',
+            status: 'Running',
+            created: 'Oct 26, 2026',
+            prospects: 18,
+            sent: 11,
+            replies: 4,
+            replyRate: '36.4%',
+            nextSend: 'Today, 17:15 (Rotated)',
+          },
+          {
+            id: 'demo-camp-vp-execs',
+            name: '[DEMO] VP of Sales Executive Outreach',
+            status: 'Paused',
+            created: 'Oct 27, 2026',
             prospects: 6,
             sent: 4,
             replies: 1,
             replyRate: '25.0%',
             nextSend: 'Scheduled',
-          },
-          {
-            id: 'demo-c4',
-            name: '[DEMO] Re-engagement for Churned Free Trials',
-            status: 'Draft',
-            created: 'Oct 26, 2026',
-            prospects: 3,
-            sent: 0,
-            replies: 0,
-            replyRate: '0%',
-            nextSend: 'Draft',
-          },
-          {
-            id: 'demo-c5',
-            name: '[DEMO] Event Follow-Up (SaaS Growth Summit)',
-            status: 'Running',
-            created: 'Oct 27, 2026',
-            prospects: 1,
-            sent: 1,
-            replies: 1,
-            replyRate: '100%',
-            nextSend: 'Today, 18:00 (Rotated)',
           },
         ];
       }
@@ -125,7 +134,7 @@ export const handler: Handler = async (event) => {
       const campaign = await prisma.campaign.create({
         data: {
           id,
-          workspaceId,
+          workspaceId: workspaceId || workspaceIds[0],
           name,
           dailyLimit: dailyLimit || 100,
           timezone: timezone || 'UTC',
@@ -143,7 +152,7 @@ export const handler: Handler = async (event) => {
             create: [
               {
                 stepNumber: 1,
-                subject: 'Quick question for {{company}}',
+                subject: 'Quick question regarding {{company}} outreach strategy',
                 bodyHtml: '<p>Hi {{firstName}},</p><p>Wanted to reach out directly regarding your cold outreach.</p>',
                 bodyText: 'Hi {{firstName}}, Wanted to reach out directly regarding your cold outreach.',
                 delayDays: 0,
@@ -162,16 +171,30 @@ export const handler: Handler = async (event) => {
 
     if (method === 'PATCH' || method === 'PUT') {
       const body = JSON.parse(event.body || '{}');
-      const id = body.id || event.queryStringParameters?.id || event.path.split('/').pop();
+      let id = body.id || event.queryStringParameters?.id || event.path.split('/').pop();
 
       if (!id) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Campaign ID is required' }) };
       }
 
+      if (isDemo && DEMO_CAMPAIGN_MAP[id]) {
+        const mapped = DEMO_CAMPAIGN_MAP[id];
+        const checkMapped = await prisma.campaign.findFirst({
+          where: { id: mapped, workspaceId: { in: workspaceIds } },
+        });
+        if (checkMapped) id = mapped;
+      }
+
       // Verify campaign belongs to user's workspace
-      const existing = await prisma.campaign.findFirst({
+      let existing = await prisma.campaign.findFirst({
         where: { id, workspaceId: { in: workspaceIds } },
       });
+
+      if (!existing && isDemo) {
+        existing = await prisma.campaign.findFirst({
+          where: { workspaceId: { in: workspaceIds } },
+        });
+      }
 
       if (!existing) {
         return {
@@ -194,7 +217,7 @@ export const handler: Handler = async (event) => {
       if (body.dailyLimit) updateData.dailyLimit = parseInt(body.dailyLimit);
 
       const updated = await prisma.campaign.update({
-        where: { id },
+        where: { id: existing.id },
         data: updateData,
       });
 
@@ -206,9 +229,17 @@ export const handler: Handler = async (event) => {
     }
 
     if (method === 'DELETE') {
-      const id = event.queryStringParameters?.id || JSON.parse(event.body || '{}').id || event.path.split('/').pop();
+      let id = event.queryStringParameters?.id || JSON.parse(event.body || '{}').id || event.path.split('/').pop();
       if (!id) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Campaign ID is required' }) };
+      }
+
+      if (isDemo && DEMO_CAMPAIGN_MAP[id]) {
+        const mapped = DEMO_CAMPAIGN_MAP[id];
+        const checkMapped = await prisma.campaign.findFirst({
+          where: { id: mapped, workspaceId: { in: workspaceIds } },
+        });
+        if (checkMapped) id = mapped;
       }
 
       // Verify campaign belongs to user's workspace
@@ -224,14 +255,12 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      await prisma.campaign.delete({
-        where: { id },
-      });
+      await prisma.campaign.delete({ where: { id: existing.id } });
 
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, message: `Campaign ${id} deleted` }),
+        body: JSON.stringify({ success: true, message: 'Campaign deleted' }),
       };
     }
 

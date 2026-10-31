@@ -2,6 +2,15 @@ import { Handler } from '@netlify/functions';
 import prisma from '../lib/prisma';
 import { getAuthContext, unauthorizedResponse } from '../lib/auth';
 
+const DEMO_CAMPAIGN_MAP: Record<string, string> = {
+  'demo-c1': 'demo-camp-inbound-nurture',
+  'demo-c2': 'demo-camp-beta-launch',
+  'demo-c3': 'demo-camp-enterprise-saas',
+  'demo-c4': 'demo-camp-midmarket-warmup',
+  'demo-c5': 'demo-camp-vp-execs',
+  'tga-sales': 'demo-camp-vp-execs',
+};
+
 export const handler: Handler = async (event) => {
   const method = event.httpMethod;
   if (method !== 'GET' && method !== 'PUT' && method !== 'POST') {
@@ -14,11 +23,11 @@ export const handler: Handler = async (event) => {
       return unauthorizedResponse('Unauthorized');
     }
 
-    const { workspaceIds } = auth;
+    const { workspaceIds, isDemo } = auth;
 
     // Extract campaignId from path or query string
     const match = event.path.match(/\/campaigns\/([^/]+)/);
-    const campaignId = match ? match[1] : (event.queryStringParameters?.id || event.queryStringParameters?.campaignId);
+    let campaignId = match ? match[1] : (event.queryStringParameters?.id || event.queryStringParameters?.campaignId);
 
     if (!campaignId) {
       return { 
@@ -28,10 +37,26 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    if (isDemo && DEMO_CAMPAIGN_MAP[campaignId]) {
+      const mapped = DEMO_CAMPAIGN_MAP[campaignId];
+      const checkMapped = await prisma.campaign.findFirst({
+        where: { id: mapped, workspaceId: { in: workspaceIds } },
+      });
+      if (checkMapped) {
+        campaignId = mapped;
+      }
+    }
+
     // Verify campaign exists and belongs to user's workspace
-    const campaign = await prisma.campaign.findFirst({
+    let campaign = await prisma.campaign.findFirst({
       where: { id: campaignId, workspaceId: { in: workspaceIds } }
     });
+
+    if (!campaign && isDemo) {
+      campaign = await prisma.campaign.findFirst({
+        where: { workspaceId: { in: workspaceIds } }
+      });
+    }
 
     if (!campaign) {
       return {
@@ -50,7 +75,7 @@ export const handler: Handler = async (event) => {
       }
 
       const responseData = {
-        campaignId,
+        campaignId: campaign.id,
         name: campaign.name || campaignId,
         dailyLimit: campaign.dailyLimit || 90,
         timezone: campaign.timezone || 'UTC',
@@ -86,7 +111,10 @@ export const handler: Handler = async (event) => {
     }
 
     if (method === 'PUT' || method === 'POST') {
-      const payload = JSON.parse(event.body || '{}');
+      let payload: any = {};
+      try {
+        payload = JSON.parse(event.body || '{}');
+      } catch {}
 
       await prisma.campaign.update({
         where: { id: campaign.id },

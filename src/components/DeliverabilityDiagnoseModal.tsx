@@ -81,18 +81,18 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#12131a] text-slate-100 rounded-2xl border border-[#232534] shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-[#171717]/95 text-slate-100 rounded-3xl border border-white/[0.12] backdrop-blur-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-[#232534] flex items-center justify-between bg-[#161822]">
+        <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#9FA0FF]/15 border border-[#9FA0FF]/30 flex items-center justify-center text-[#9FA0FF]">
+            <div className="w-10 h-10 rounded-xl bg-[#10b981]/15 border border-[#10b981]/30 flex items-center justify-center text-emerald-400">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-[#FFF3E3] tracking-tight">Deliverability & Anti-Spam Diagnostics</h2>
-                <span className="px-2 py-0.5 rounded-full bg-[#D5E8E6]/20 text-[#D5E8E6] border border-[#D5E8E6]/30 text-xs font-semibold">
+                <h2 className="text-lg font-bold text-[#F8FAFC] tracking-tight">Deliverability & Anti-Spam Diagnostics</h2>
+                <span className="px-2 py-0.5 rounded-full bg-[#34D399]/20 text-[#34D399] border border-[#34D399]/30 text-xs font-semibold">
                   100% Primary Inbox Safe
                 </span>
               </div>
@@ -110,7 +110,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
         </div>
 
         {/* Diagnostic Tabs */}
-        <div className="flex border-b border-[#232534] px-6 bg-[#13141d] gap-2">
+        <div className="flex border-b border-white/[0.08] px-6 bg-white/[0.02] gap-2">
           {[
             { id: 'overview', label: 'Overview & Score', icon: Activity },
             { id: 'dns', label: 'DNS Authentication', icon: Globe },
@@ -125,7 +125,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition-all ${
                   active 
-                    ? 'border-[#9FA0FF] text-[#9FA0FF] font-semibold' 
+                    ? 'border-[#10b981] text-emerald-400 font-semibold' 
                     : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
                 }`}
               >
@@ -143,7 +143,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
             <div className="space-y-6">
               {/* Score Highlight Banner */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-950/40 to-[#161724] border border-blue-500/30 flex items-center gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-950/40 to-[#171717] border border-blue-500/30 flex items-center gap-4">
                   <div className="relative w-16 h-16 flex items-center justify-center">
                     <svg className="w-16 h-16 transform -rotate-90">
                       <circle cx="32" cy="32" r="28" stroke="#1e293b" strokeWidth="5" fill="none" />
@@ -166,7 +166,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#161724] border border-[#26283b] flex items-center gap-4">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
@@ -177,7 +177,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#161724] border border-[#26283b] flex items-center gap-4">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
                     <Flame className="w-6 h-6" />
                   </div>
@@ -193,7 +193,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
               <div className="space-y-3">
                 <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Deliverability Protections</h4>
                 
-                <div className="p-3.5 rounded-xl bg-[#161724] border border-[#26283b] flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                     <div>
@@ -206,7 +206,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                   <span className="text-xs px-2.5 py-1 rounded bg-blue-500/20 text-blue-300 font-medium">160/day Safe Capacity</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-[#161724] border border-[#26283b] flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                     <div>
@@ -219,7 +219,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                   <span className="text-xs px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-medium">Active</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-[#161724] border border-[#26283b] flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                     <div>
@@ -232,7 +232,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                   <span className="text-xs px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-medium">track.reachly.ai</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-[#161724] border border-[#26283b] flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                     <div>
@@ -256,7 +256,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
 
               <div className="space-y-3">
                 {/* SPF */}
-                <div className="p-4 rounded-xl bg-[#161724] border border-[#26283b] space-y-2">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -264,14 +264,14 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                     </div>
                     <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400">VALID</span>
                   </div>
-                  <code className="block p-2 bg-[#0d0e14] rounded text-xs font-mono text-slate-300 break-all border border-[#1f2130]">
+                  <code className="block p-2 bg-[#171717]/90 rounded text-xs font-mono text-slate-300 break-all border border-white/[0.08]">
                     {data.domainHealth.spf.record}
                   </code>
                   <p className="text-xs text-slate-400">{data.domainHealth.spf.detail}</p>
                 </div>
 
                 {/* DKIM */}
-                <div className="p-4 rounded-xl bg-[#161724] border border-[#26283b] space-y-2">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -279,14 +279,14 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                     </div>
                     <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400">2048-BIT PASS</span>
                   </div>
-                  <code className="block p-2 bg-[#0d0e14] rounded text-xs font-mono text-slate-300 border border-[#1f2130]">
+                  <code className="block p-2 bg-[#171717]/90 rounded text-xs font-mono text-slate-300 border border-white/[0.08]">
                     Selector: {data.domainHealth.dkim.selector}
                   </code>
                   <p className="text-xs text-slate-400">{data.domainHealth.dkim.detail}</p>
                 </div>
 
                 {/* DMARC */}
-                <div className="p-4 rounded-xl bg-[#161724] border border-[#26283b] space-y-2">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -294,14 +294,14 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
                     </div>
                     <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400">ENFORCED</span>
                   </div>
-                  <code className="block p-2 bg-[#0d0e14] rounded text-xs font-mono text-slate-300 border border-[#1f2130]">
+                  <code className="block p-2 bg-[#171717]/90 rounded text-xs font-mono text-slate-300 border border-white/[0.08]">
                     {data.domainHealth.dmarc.record}
                   </code>
                   <p className="text-xs text-slate-400">{data.domainHealth.dmarc.detail}</p>
                 </div>
 
                 {/* Custom Tracking Domain */}
-                <div className="p-4 rounded-xl bg-[#161724] border border-[#26283b] space-y-2">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -317,7 +317,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
 
           {activeTab === 'warmup' && (
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/30 to-[#161724] border border-amber-500/30 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/30 to-[#171717] border border-amber-500/30 flex items-center justify-between">
                 <div>
                   <h4 className="font-bold text-white text-sm flex items-center gap-2">
                     <Flame className="w-5 h-5 text-orange-400 fill-orange-400" />
@@ -333,25 +333,25 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 bg-[#161724] rounded-xl border border-[#26283b]">
+                <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.08]">
                   <p className="text-[11px] text-slate-400">Inbox Placement</p>
                   <p className="text-xl font-bold text-emerald-400">{data.warmupNetwork.inboxPlacementRate}%</p>
                 </div>
-                <div className="p-3 bg-[#161724] rounded-xl border border-[#26283b]">
+                <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.08]">
                   <p className="text-[11px] text-slate-400">Spam Rescue Count</p>
                   <p className="text-xl font-bold text-amber-300">{data.warmupNetwork.spamFolderRescueCount}</p>
                 </div>
-                <div className="p-3 bg-[#161724] rounded-xl border border-[#26283b]">
+                <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.08]">
                   <p className="text-[11px] text-slate-400">Daily Warmup Sends</p>
                   <p className="text-xl font-bold text-white">{data.warmupNetwork.dailyWarmupSent}</p>
                 </div>
-                <div className="p-3 bg-[#161724] rounded-xl border border-[#26283b]">
+                <div className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.08]">
                   <p className="text-[11px] text-slate-400">Warmup Reply Rate</p>
                   <p className="text-xl font-bold text-blue-400">{data.warmupNetwork.averageReplyRate}</p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-[#161724] border border-[#26283b] space-y-2">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
                 <h5 className="text-xs font-semibold text-white uppercase tracking-wider">How Instantly-Grade Warmup Works:</h5>
                 <ul className="text-xs text-slate-300 space-y-1.5 list-disc pl-4">
                   <li><strong>Spam Rescue:</strong> If an email lands in spam, the peer inbox automatically moves it to Primary and marks it as "Not Spam".</li>
@@ -364,7 +364,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
 
           {activeTab === 'spam_words' && (
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-[#161724] border border-[#26283b] flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
                 <div>
                   <h4 className="font-bold text-white text-sm">Sequence Content Spam Risk Score</h4>
                   <p className="text-xs text-slate-400 mt-0.5">Scanned against 150+ cold email spam trigger words & structural traps.</p>
@@ -377,7 +377,7 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
 
               <div className="space-y-2">
                 {data.spamAnalysis.flags.map((flag: any, idx: number) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-[#161724] border border-[#26283b] flex items-start gap-3">
+                  <div key={idx} className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-start gap-3">
                     {flag.severity === 'danger' ? (
                       <AlertTriangle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
                     ) : (
@@ -400,12 +400,12 @@ export default function DeliverabilityDiagnoseModal({ isOpen, onClose, campaignN
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-[#232534] bg-[#161822] flex items-center justify-between">
+        <div className="px-6 py-3.5 border-t border-white/[0.08] bg-white/[0.02] flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-slate-400">
-            <RefreshCw className="w-3.5 h-3.5 text-[#9FA0FF] animate-spin" />
+            <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
             <span>Continuous background deliverability monitoring active</span>
           </div>
-          <Button onClick={onClose} className="bg-[#9FA0FF] hover:bg-[#8889FF] text-[#0c0d18] font-bold text-xs px-4 h-9 shadow-md shadow-[#9FA0FF]/25 border-none">
+          <Button onClick={onClose} className="btn-reachops-primary text-white font-bold text-xs px-4 h-9 shadow-md shadow-emerald-500/20 border-none">
             Done
           </Button>
         </div>

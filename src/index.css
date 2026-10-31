@@ -4,37 +4,32 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%; /* Pure Black Background */
+    --background: 154 48% 5%; /* #06110c Forest Green Base */
     --foreground: 210 40% 98%;
-    --card: 240 10% 7%; /* Deep Black Surface #111219 */
+    --card: 0 0% 9%; /* #171717 Charcoal Black */
     --card-foreground: 210 40% 98%;
-    --popover: 240 10% 7%;
+    --popover: 0 0% 9%;
     --popover-foreground: 210 40% 98%;
     
-    /* Primary: Pastel Blue #9FA0FF */
-    --primary: 239.4 100% 81.2%;
-    --primary-foreground: 237 45% 12%;
+    /* ReachOps Brand Palette: Crimson Red #a31c1b & Forest Green #06110c with Emerald #10b981 */
+    --primary: 1 73% 37%; /* #a31c1b */
+    --primary-foreground: 0 0% 100%;
     
-    /* Secondary: Pastel Teal #D5E8E6 */
-    --secondary: 173.7 30.5% 87.3%;
-    --secondary-foreground: 174 45% 18%;
+    --secondary: 160 84% 39%; /* #10b981 */
+    --secondary-foreground: 0 0% 100%;
     
-    /* Muted: Soft Beige #FFF3E3 */
-    --muted: 240 10% 14%;
-    --muted-foreground: 220 15% 65%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 215 16% 65%;
     
-    /* Accent: Coral Red #FF7171 */
-    --accent: 0 100% 72.2%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 1 73% 37%;
+    --destructive-foreground: 210 40% 98%;
     
-    /* Destructive: Coral Red #FF7171 */
-    --destructive: 0 100% 72.2%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 240 8% 18%;
-    --input: 240 8% 18%;
-    --ring: 239.4 100% 81.2%;
-    --radius: 0.75rem;
+    --border: 0 0% 16%;
+    --input: 0 0% 14%;
+    --ring: 1 73% 37%;
+    --radius: 1rem;
   }
 }
 
@@ -43,46 +38,102 @@
     @apply border-border;
   }
   body {
-    @apply bg-black text-slate-100 antialiased selection:bg-[#9FA0FF]/30;
+    background-color: #06110c;
+    color: #F8FAFC;
+    @apply antialiased selection:bg-[#a31c1b]/30;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Custom Sleek Dark Scrollbar */
+  /* Custom Sleek Dark Glass Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #090a10;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #202235;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #2e314d;
+    background: rgba(255, 255, 255, 0.25);
   }
 }
 
-/* Custom Palette Tokens based on user provided reference */
-:root {
-  --color-brand-blue: #9FA0FF;
-  --color-brand-teal: #D5E8E6;
-  --color-brand-beige: #FFF3E3;
-  --color-brand-red: #FF7171;
+/* Atmospheric Forest Green & Crimson Aurora Background matching user screenshot */
+.bg-reachops-cosmic {
+  background-color: #06110c;
+  background-image: 
+    radial-gradient(ellipse 75% 55% at 10% 12%, rgba(16, 185, 129, 0.14), transparent 65%),
+    radial-gradient(ellipse 65% 50% at 90% 15%, rgba(163, 28, 27, 0.16), transparent 65%),
+    radial-gradient(ellipse 60% 70% at 5% 85%, rgba(5, 150, 105, 0.12), transparent 60%),
+    radial-gradient(ellipse 65% 55% at 92% 85%, rgba(163, 28, 27, 0.14), transparent 60%),
+    linear-gradient(180deg, rgba(6, 17, 12, 0.7) 0%, rgba(6, 17, 12, 0.95) 100%);
 }
 
-.bg-brand-blue { background-color: #9FA0FF; }
-.text-brand-blue { color: #9FA0FF; }
-.border-brand-blue { border-color: #9FA0FF; }
+/* Masterpiece Charcoal Black Glassmorphism Card Surface (#171717) */
+.glass-surface {
+  background: rgba(23, 23, 23, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border-radius: 1.25rem;
+}
 
-.bg-brand-teal { background-color: #D5E8E6; }
-.text-brand-teal { color: #2D6B64; }
-.border-brand-teal { border-color: #D5E8E6; }
+.glass-surface-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-surface-hover:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 14px 44px 0 rgba(0, 0, 0, 0.6), 0 0 24px rgba(16, 185, 129, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
 
-.bg-brand-beige { background-color: #FFF3E3; }
-.text-brand-beige { color: #5C4A32; }
-.border-brand-beige { border-color: #FFF3E3; }
+/* Radiant Crimson Red Gradient Action Button (#a31c1b) */
+.btn-reachops-primary {
+  background: linear-gradient(135deg, #a31c1b 0%, #b92322 50%, #871615 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 20px rgba(163, 28, 27, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-reachops-primary:hover {
+  background: linear-gradient(135deg, #b92322 0%, #c72d2c 50%, #991a19 100%);
+  box-shadow: 0 6px 26px rgba(163, 28, 27, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+.btn-reachops-primary:active {
+  transform: translateY(0);
+}
 
-.bg-brand-red { background-color: #FF7171; }
-.text-brand-red { color: #FF7171; }
-.border-brand-red { border-color: #FF7171; }
+/* Emerald Green Radiant Action Button (#10b981) */
+.btn-reachops-emerald {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-reachops-emerald:hover {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  box-shadow: 0 6px 26px rgba(16, 185, 129, 0.6);
+  transform: translateY(-1px);
+}
+.btn-reachops-emerald:active {
+  transform: translateY(0);
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar,
+.hide-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}

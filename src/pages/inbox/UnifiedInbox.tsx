@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
-  Search, Mail, User, Building, Send, Pause, 
+  Search, Mail, User, Building, Send, Pause, Play,
   Check, ChevronDown, ShieldCheck, 
-  MessageSquare, RefreshCw
+  MessageSquare, RefreshCw, Flame, Snowflake, Ban, AlertCircle, Calendar, Sparkles
 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
+import ScheduleFollowUpModal from '@/components/ScheduleFollowUpModal';
 
 interface Message {
   sender: string;
@@ -154,11 +155,20 @@ export default function UnifiedInbox() {
     }
   };
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
   const handleMarkLeadStatus = async (opt: string) => {
     if (!activeThread) return;
     const threadKey = String(activeThread.id);
     setThreadStatus(prev => ({ ...prev, [threadKey]: opt }));
     setShowLeadDropdown(false);
+
+    const isStopTag = ['Lead', 'Warm', 'Cold', 'DNC', 'Invalid Contact', 'Paused'].includes(opt);
 
     try {
       await fetch('/api/inbox', {
@@ -168,10 +178,40 @@ export default function UnifiedInbox() {
           action: 'mark_lead',
           prospectId: activeThread.prospectId || activeThread.id,
           status: opt,
+          stopSequence: isStopTag,
         })
       });
+      if (isStopTag) {
+        showToast(`Tag '${opt}' applied. Automated follow-up sequence stopped.`);
+      } else {
+        showToast(`Lead status updated to '${opt}'.`);
+      }
     } catch (e) {
       console.error('Failed to mark lead status:', e);
+    }
+  };
+
+  const handleScheduleFollowUp = async (dateStr: string, timeStr: string, formattedLabel: string) => {
+    if (!activeThread) return;
+    const threadKey = String(activeThread.id);
+    const statusLabel = `Scheduled (${formattedLabel})`;
+    setThreadStatus(prev => ({ ...prev, [threadKey]: statusLabel }));
+
+    try {
+      await fetch('/api/inbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'schedule_follow_up',
+          prospectId: activeThread.prospectId || activeThread.id,
+          scheduledDate: dateStr,
+          scheduledTime: timeStr,
+          formattedLabel: formattedLabel,
+        })
+      });
+      showToast(`Follow-up locked: Next email will send on ${formattedLabel}.`);
+    } catch (e) {
+      console.error('Failed to schedule follow-up:', e);
     }
   };
 
@@ -193,71 +233,43 @@ export default function UnifiedInbox() {
   };
 
   return (
-    <div className="flex h-full w-full bg-black text-slate-100 overflow-hidden relative select-none">
+    <div className="flex h-full w-full bg-[#06110c] bg-reachops-cosmic text-slate-100 overflow-hidden relative select-none">
 
-      {/* Schedule Modal */}
-      {showScheduleModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[#0f1118] border border-[#222536] text-slate-100 rounded-2xl p-6 shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <h3 className="text-base font-bold text-white mb-1.5">Schedule Follow-up</h3>
-            <p className="text-xs text-slate-400 mb-5">Queue automated follow-up dispatch for this prospect at the scheduled time.</p>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">Date</label>
-                <Input 
-                  type="date" 
-                  value={scheduleDate} 
-                  onChange={(e) => setScheduleDate(e.target.value)} 
-                  className="h-10 bg-[#12141e] border-[#25283a] text-white focus:border-[#0080FF]" 
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">Time</label>
-                <Input 
-                  type="time" 
-                  value={scheduleTime} 
-                  onChange={(e) => setScheduleTime(e.target.value)} 
-                  className="h-10 bg-[#12141e] border-[#25283a] text-white focus:border-[#0080FF]" 
-                />
-              </div>
-            </div>
-            <div className="mt-6 flex gap-2 justify-end">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowScheduleModal(false)} 
-                className="bg-[#12141e] border-[#25283a] text-slate-300 hover:text-white hover:bg-[#1a1d2c] text-xs h-9"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={() => {
-                  if (activeThread) {
-                    setThreadStatus(prev => ({ ...prev, [String(activeThread.id)]: `Scheduled (${scheduleDate} ${scheduleTime})` }));
-                  }
-                  setShowScheduleModal(false);
-                  setScheduleDate('');
-                  setScheduleTime('');
-                }} 
-                disabled={!scheduleDate || !scheduleTime}
-                className="bg-[#0080FF] hover:bg-[#0070E0] text-white font-bold text-xs h-9 px-4 cursor-pointer"
-              >
-                Confirm
-              </Button>
-            </div>
-          </div>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-[100] flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-2xl border text-xs font-bold animate-in fade-in slide-in-from-top-4 duration-200 bg-[#171717]/95 border-emerald-500/40 text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.3)]">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
         </div>
       )}
 
+      {/* Redesigned Custom Cosmic Glassmorphic Schedule Follow-up Modal */}
+      <ScheduleFollowUpModal 
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        prospectName={activeThread?.name || 'this prospect'}
+        initialDate={scheduleDate}
+        initialTime={scheduleTime}
+        onConfirm={(dateStr, timeStr, formattedLabel) => {
+          if (activeThread) {
+            handleScheduleFollowUp(dateStr, timeStr, formattedLabel);
+          }
+          setShowScheduleModal(false);
+          setScheduleDate('');
+          setScheduleTime('');
+        }}
+      />
+
       {/* Left Pane: Inbox Threads List */}
-      <div className="w-[340px] lg:w-[360px] flex-shrink-0 border-r border-[#1a1d2e] flex flex-col bg-[#08090f] z-10">
+      <div className="w-[340px] lg:w-[360px] flex-shrink-0 border-r border-white/[0.08] flex flex-col bg-[#171717]/95 backdrop-blur-2xl z-10">
         
         {/* Top Header: Height 56px matching middle pane exactly */}
-        <div className="h-14 border-b border-[#1a1d2e] px-4 flex items-center justify-between bg-[#0a0c14] flex-shrink-0">
+        <div className="h-14 border-b border-white/[0.08] px-4 flex items-center justify-between bg-white/[0.02] flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-200">
+            <span className="text-xs font-bold text-slate-100">
               {routeCampaignId ? 'Campaign Responses' : 'Inbox'}
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#0080FF]/15 text-[#0080FF] border border-[#0080FF]/30">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30">
               {threads.length}
             </span>
           </div>
@@ -268,36 +280,36 @@ export default function UnifiedInbox() {
               <select 
                 value={campaignFilter}
                 onChange={(e) => setCampaignFilter(e.target.value)}
-                className="text-xs border border-[#222538] rounded-lg px-2 py-1 bg-[#12141e] text-slate-200 focus:outline-none focus:border-[#0080FF] font-medium max-w-[140px] truncate"
+                className="text-xs border border-white/[0.09] rounded-xl px-2.5 py-1 bg-white/[0.04] text-slate-200 focus:outline-none focus:border-emerald-500 font-semibold max-w-[140px] truncate"
               >
-                <option value="all">All Campaigns</option>
+                <option value="all" className="bg-[#171717] text-white">All Campaigns</option>
                 {campaignsList.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id} className="bg-[#171717] text-white">{c.name}</option>
                 ))}
               </select>
             )}
 
             <button 
               onClick={fetchInboxThreads}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#151724] transition-colors cursor-pointer"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               title="Refresh responses"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Sub-Toolbar: Search and Filters */}
-        <div className="p-3 border-b border-[#1a1d2e] space-y-2.5 bg-[#08090f]">
+        <div className="p-3 border-b border-white/[0.08] space-y-2.5 bg-white/[0.01]">
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input 
               type="text"
               placeholder="Search leads, responses, companies..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 h-8 text-xs bg-[#10121a] border border-[#1e2232] text-white placeholder-slate-500 focus:outline-none focus:border-[#0080FF] rounded-lg transition-colors" 
+              className="w-full pl-9 pr-3 h-8 text-xs bg-white/[0.04] border border-white/[0.09] text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 rounded-xl transition-all shadow-inner" 
             />
           </div>
 
@@ -307,10 +319,10 @@ export default function UnifiedInbox() {
               <button 
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   filter === f 
-                    ? 'bg-[#0080FF] text-white font-bold' 
-                    : 'bg-[#10121a] text-slate-400 hover:text-white hover:bg-[#151724] border border-[#1e2232]'
+                    ? 'bg-[#a31c1b] text-white font-bold shadow-[0_0_12px_rgba(163,28,27,0.6)]' 
+                    : 'bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08] border border-white/[0.08]'
                 }`}
               >
                 {f}
@@ -320,15 +332,15 @@ export default function UnifiedInbox() {
         </div>
 
         {/* Threads List Scroll View */}
-        <div className="flex-1 overflow-y-auto divide-y divide-[#141622]">
+        <div className="flex-1 overflow-y-auto divide-y divide-white/[0.05]">
           {isLoading && threads.length === 0 ? (
             <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center">
-              <RefreshCw className="w-5 h-5 animate-spin text-[#0080FF] mb-3" />
+              <RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mb-3" />
               <p className="text-xs text-slate-400">Loading campaign responses...</p>
             </div>
           ) : threads.length === 0 ? (
             <div className="p-10 text-center text-slate-400 flex flex-col items-center justify-center h-full">
-              <div className="w-10 h-10 rounded-xl bg-[#12141e] border border-[#222538] flex items-center justify-center mb-3 text-[#0080FF]">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.09] flex items-center justify-center mb-3 text-emerald-400 shadow-lg shadow-emerald-500/20">
                 <Mail className="w-5 h-5" />
               </div>
               <p className="font-bold text-white text-xs">No responses yet</p>
@@ -345,8 +357,8 @@ export default function UnifiedInbox() {
                   onClick={() => setActiveThreadId(thread.id)}
                   className={`p-3.5 cursor-pointer transition-colors relative border-l-2 ${
                     isSelected 
-                      ? 'bg-[#10131d] border-l-[#0080FF]' 
-                      : 'border-l-transparent hover:bg-[#0c0e16]'
+                      ? 'bg-white/[0.06] border-l-emerald-400' 
+                      : 'border-l-transparent hover:bg-white/[0.03]'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-1">
@@ -355,10 +367,10 @@ export default function UnifiedInbox() {
                         {thread.name}
                       </span>
                       {thread.unread && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#0080FF] shadow-[0_0_6px_rgba(0,128,255,0.8)] flex-shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#a31c1b] shadow-[0_0_6px_#a31c1b] flex-shrink-0" />
                       )}
                     </div>
-                    <span className="text-[10px] text-slate-500 whitespace-nowrap">
+                    <span className="text-[10px] text-slate-400 whitespace-nowrap">
                       {thread.time}
                     </span>
                   </div>
@@ -372,10 +384,10 @@ export default function UnifiedInbox() {
                   </p>
                   
                   <div className="mt-2 flex items-center justify-between">
-                    <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-wider ${getTagColor(thread.tag)}`}>
+                    <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-semibold ${getTagColor(thread.tag)}`}>
                       {thread.tag}
                     </span>
-                    <span className="text-[10px] text-slate-500 truncate max-w-[130px]">
+                    <span className="text-[10px] text-slate-400 truncate max-w-[130px]">
                       {thread.company}
                     </span>
                   </div>
@@ -389,67 +401,153 @@ export default function UnifiedInbox() {
       {/* Center Pane: Thread Detail & Conversation Composer */}
       {activeThread ? (
         <>
-          <div className="flex-1 flex flex-col min-w-0 bg-[#07080e] z-10">
+          <div className="flex-1 flex flex-col min-w-0 bg-[#171717]/90 backdrop-blur-xl z-10">
             
             {/* Thread Header Toolbar: Exactly 56px matching left and right pane */}
-            <div className="h-14 border-b border-[#1a1d2e] px-6 flex items-center justify-between flex-shrink-0 bg-[#0a0c14]">
+            <div className="h-14 border-b border-white/[0.08] px-6 flex items-center justify-between flex-shrink-0 bg-white/[0.02]">
               <div className="flex items-center gap-3 min-w-0">
                 <h2 className="text-xs font-bold text-white truncate tracking-tight">
                   {activeThread.subject}
                 </h2>
-                <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-wider flex-shrink-0 ${getTagColor(activeThread.tag)}`}>
+                <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-semibold flex-shrink-0 ${getTagColor(activeThread.tag)}`}>
                   {activeThread.tag}
                 </span>
               </div>
               
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
                 {/* Mark Lead Dropdown */}
                 <div className="relative" ref={dropdownRef}>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="bg-[#10121a] border-[#222538] text-slate-200 hover:text-white hover:bg-[#161824] text-xs h-8 px-3 font-semibold cursor-pointer"
+                  <button 
+                    type="button"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-semibold text-slate-200 hover:text-white shadow-sm transition-all active:scale-95 cursor-pointer"
                     onClick={() => setShowLeadDropdown(!showLeadDropdown)}
                   >
-                    <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> 
-                    {threadStatus[String(activeThread.id)] || 'Mark Lead'} 
-                    <ChevronDown className="w-3 h-3 ml-1.5 text-slate-400" />
-                  </Button>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" /> 
+                    <span>{threadStatus[String(activeThread.id)] || 'Mark Lead'}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showLeadDropdown ? 'rotate-180' : ''}`} />
+                  </button>
 
                   {showLeadDropdown && (
-                    <div className="absolute right-0 top-full mt-1.5 w-44 bg-[#12141e] border border-[#25283a] shadow-2xl rounded-xl z-50 py-1 overflow-hidden animate-in fade-in text-xs">
-                      {['Lead', 'Warm', 'Cold', 'DNC', 'Invalid Contact', 'Schedule'].map(opt => (
-                        <button
-                          key={opt}
-                          onClick={() => {
-                            if (opt === 'Schedule') {
-                              setShowScheduleModal(true);
-                              setShowLeadDropdown(false);
-                            } else {
-                              handleMarkLeadStatus(opt);
-                            }
-                          }}
-                          className="w-full text-left px-3.5 py-2 text-slate-300 hover:bg-[#1a1d2c] hover:text-white transition-colors cursor-pointer"
-                        >
-                          {opt}
-                        </button>
-                      ))}
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-[#171717]/95 backdrop-blur-2xl border border-white/[0.12] shadow-2xl rounded-2xl z-50 p-1.5 overflow-hidden animate-in fade-in zoom-in-95 text-xs">
+                      {[
+                        { label: 'Lead', desc: 'Qualified prospect', icon: Sparkles, color: 'text-emerald-400', bg: 'hover:bg-emerald-500/10' },
+                        { label: 'Warm', desc: 'Interested in meeting', icon: Flame, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+                        { label: 'Cold', desc: 'Not ready right now', icon: Snowflake, color: 'text-slate-300', bg: 'hover:bg-white/[0.06]' },
+                        { label: 'DNC', desc: 'Do Not Contact', icon: Ban, color: 'text-[#ef4444]', bg: 'hover:bg-[#a31c1b]/15' },
+                        { label: 'Invalid Contact', desc: 'Wrong address or person', icon: AlertCircle, color: 'text-amber-400', bg: 'hover:bg-amber-500/10' },
+                        { label: 'Schedule', desc: 'Book a call on calendar', icon: Calendar, color: 'text-[#10b981]', bg: 'hover:bg-[#10b981]/15' },
+                      ].map(item => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.label}
+                            type="button"
+                            onClick={() => {
+                              if (item.label === 'Schedule') {
+                                setShowScheduleModal(true);
+                                setShowLeadDropdown(false);
+                              } else {
+                                handleMarkLeadStatus(item.label);
+                              }
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-xl text-slate-200 ${item.bg} hover:text-white transition-all flex items-center gap-2.5 cursor-pointer group`}
+                          >
+                            <div className={`w-6 h-6 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0 ${item.color}`}>
+                              <Icon className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-white leading-tight">{item.label}</span>
+                              <span className="text-[10px] text-slate-400 leading-tight">{item.desc}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
                 {/* Pause Sequence Action */}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-[#10121a] border-[#222538] text-slate-200 hover:text-white hover:bg-[#161824] text-xs h-8 px-3 cursor-pointer"
-                  onClick={() => handleMarkLeadStatus('Paused')}
+                <button 
+                  type="button"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer ${
+                    threadStatus[String(activeThread.id)] === 'Paused'
+                      ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-300'
+                      : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.1] text-slate-200 hover:text-white'
+                  }`}
+                  onClick={() => handleMarkLeadStatus(threadStatus[String(activeThread.id)] === 'Paused' ? 'Active' : 'Paused')}
                 >
-                  <Pause className="w-3.5 h-3.5 mr-1.5 text-amber-400" /> 
-                  Pause Sequence
-                </Button>
+                  {threadStatus[String(activeThread.id)] === 'Paused' ? (
+                    <>
+                      <Play className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Resume Sequence</span>
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Pause Sequence</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
+
+            {/* Sequence Status Banners: Tag Stopped vs. Scheduled Follow-up */}
+            {(() => {
+              const currentTag = threadStatus[String(activeThread.id)] || '';
+              const isStopTag = ['Lead', 'Warm', 'Cold', 'DNC', 'Invalid Contact'].includes(currentTag);
+              const isScheduled = currentTag.startsWith('Scheduled');
+
+              if (isStopTag) {
+                return (
+                  <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs animate-in fade-in duration-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                        <Pause className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-white flex items-center gap-2">
+                          <span>Automated Follow-up Stopped</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        </p>
+                        <p className="text-[11px] text-slate-300 mt-0.5">
+                          Sequence emails have been halted because this prospect was tagged as <strong className="text-amber-400">{currentTag}</strong>. Manual replies only.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold text-amber-300 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/30 shrink-0">
+                      Follow-up Halted
+                    </span>
+                  </div>
+                );
+              }
+
+              if (isScheduled) {
+                const dateText = currentTag.replace('Scheduled (', '').replace(')', '');
+                return (
+                  <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs animate-in fade-in duration-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-white flex items-center gap-2">
+                          <span>Next Follow-up Scheduled</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        </p>
+                        <p className="text-[11px] text-slate-300 mt-0.5">
+                          Automated cadence is locked. Next email will dispatch on <strong className="text-emerald-400">{dateText}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold text-emerald-300 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30 shrink-0">
+                      Dispatches on Date
+                    </span>
+                  </div>
+                );
+              }
+
+              return null;
+            })()}
 
             {/* Conversation Messages Stream */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -458,12 +556,12 @@ export default function UnifiedInbox() {
                 return (
                   <div 
                     key={index} 
-                    className={`flex gap-3 max-w-3xl ${isMe ? 'ml-auto flex-row-reverse' : ''}`}
+                    className={`flex gap-3.5 max-w-3xl ${isMe ? 'ml-auto flex-row-reverse' : ''}`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-bold ${
                       isMe 
-                        ? 'bg-[#0080FF] text-white shadow-md shadow-[#0080FF]/25' 
-                        : 'bg-[#12141e] border border-[#222538] text-slate-300'
+                        ? 'bg-gradient-to-tr from-[#059669] to-[#10b981] text-white shadow-md shadow-emerald-500/20' 
+                        : 'bg-white/[0.06] border border-white/[0.09] text-slate-300'
                     }`}>
                       {isMe ? 'ME' : (msg.sender.charAt(0).toUpperCase() || 'P')}
                     </div>
@@ -473,15 +571,15 @@ export default function UnifiedInbox() {
                         <span className="text-xs font-bold text-white">
                           {msg.sender}
                         </span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-slate-400">
                           {msg.time}
                         </span>
                       </div>
                       
-                      <div className={`p-4 rounded-2xl text-xs leading-relaxed font-sans ${
+                      <div className={`p-4 rounded-2xl text-xs leading-relaxed font-sans shadow-sm ${
                         isMe 
-                          ? 'bg-[#10131d] border border-[#1e2336] text-slate-200 rounded-tr-none' 
-                          : 'bg-[#0f1118] border border-[#1e2232] text-slate-200 rounded-tl-none'
+                          ? 'bg-[#10b981]/15 border border-[#10b981]/30 text-white rounded-tr-none' 
+                          : 'glass-surface text-slate-200 rounded-tl-none'
                       }`}>
                         <div className="whitespace-pre-wrap">
                           {msg.body}
@@ -494,28 +592,28 @@ export default function UnifiedInbox() {
             </div>
 
             {/* Pinned Quick Reply Composer Box */}
-            <div className="p-4 bg-[#08090f] border-t border-[#1a1d2e] flex-shrink-0">
+            <div className="p-4 bg-white/[0.02] border-t border-white/[0.08] flex-shrink-0">
               <div className="flex gap-3 max-w-4xl">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#0080FF] text-white font-bold text-xs shadow-md shadow-[#0080FF]/25">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-tr from-[#059669] to-[#10b981] text-white font-bold text-xs shadow-md shadow-emerald-500/20">
                   ME
                 </div>
-                <div className="flex-1 border border-[#1e2232] rounded-2xl shadow-2xl bg-[#0c0e16] focus-within:border-[#0080FF] overflow-hidden transition-all">
+                <div className="flex-1 border border-white/[0.09] rounded-2xl shadow-2xl bg-white/[0.03] focus-within:border-emerald-500 overflow-hidden transition-all">
                   <textarea 
                     className="w-full min-h-[90px] p-3.5 text-xs text-slate-100 focus:outline-none resize-y bg-transparent placeholder-slate-500 leading-relaxed font-sans"
                     placeholder={`Reply directly to ${activeThread.name}...`}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                   />
-                  <div className="bg-[#090b10] px-4 py-2 border-t border-[#181a26] flex justify-between items-center">
+                  <div className="bg-white/[0.02] px-4 py-2 border-t border-white/[0.06] flex justify-between items-center">
                     <div className="text-[11px] text-slate-400">
                       Sending via rotating connected mailbox
                     </div>
                     <Button 
                       size="sm" 
-                      className={`h-7 px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      className={`h-8 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         replyText 
-                          ? 'bg-[#0080FF] hover:bg-[#0070E0] text-white shadow-md shadow-[#0080FF]/25' 
-                          : 'bg-[#141724] text-slate-500 cursor-not-allowed'
+                          ? 'btn-reachops-primary shadow-md' 
+                          : 'bg-white/[0.04] text-slate-500 cursor-not-allowed'
                       }`} 
                       disabled={!replyText || isSendingReply} 
                       onClick={handleSendReply}
@@ -531,17 +629,17 @@ export default function UnifiedInbox() {
           </div>
 
           {/* Right Context Panel (CRM & Campaign Context) */}
-          <div className="w-72 xl:w-80 border-l border-[#1a1d2e] bg-[#08090f] hidden xl:flex flex-col flex-shrink-0 z-10">
+          <div className="w-72 xl:w-80 border-l border-white/[0.08] bg-[#171717]/95 backdrop-blur-2xl hidden xl:flex flex-col flex-shrink-0 z-10">
             
             {/* Right Top Header: Height 56px matching left and center pane exactly */}
-            <div className="h-14 border-b border-[#1a1d2e] px-5 flex items-center justify-between bg-[#0a0c14] flex-shrink-0">
+            <div className="h-14 border-b border-white/[0.08] px-5 flex items-center justify-between bg-white/[0.02] flex-shrink-0">
               <div className="flex items-center gap-2">
-                <User className="w-3.5 h-3.5 text-[#0080FF]" />
-                <span className="text-xs font-semibold text-slate-200">
+                <User className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-xs font-bold text-slate-200">
                   Prospect Details
                 </span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono">Lead Info</span>
+              <span className="text-[10px] text-slate-400 font-mono">Lead Info</span>
             </div>
 
             {/* Right Content Stream */}
@@ -552,8 +650,8 @@ export default function UnifiedInbox() {
                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Prospect Details</h3>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#12141e] border border-[#222538] flex items-center justify-center text-[#0080FF]">
-                      <User className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-sm">
+                      <User className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-white truncate">{activeThread.name}</p>
@@ -562,8 +660,8 @@ export default function UnifiedInbox() {
                   </div>
 
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#12141e] border border-[#222538] flex items-center justify-center text-emerald-400">
-                      <Building className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-sm">
+                      <Building className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-white truncate">{activeThread.company}</p>
@@ -574,26 +672,26 @@ export default function UnifiedInbox() {
               </div>
 
               {/* Campaign Context */}
-              <div className="pt-4 border-t border-[#181a26]">
+              <div className="pt-4 border-t border-white/[0.06]">
                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Campaign Info</h3>
                 <div className="space-y-2.5 text-xs">
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Campaign</span>
+                    <span className="text-slate-400 block text-[11px]">Campaign</span>
                     <p className="font-semibold text-slate-200 mt-0.5 truncate">
                       {activeThread.campaignName || 'Product Hunt Beta Launch Sequence'}
                     </p>
                   </div>
 
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Sequence Step</span>
+                    <span className="text-slate-400 block text-[11px]">Sequence Step</span>
                     <p className="font-semibold text-slate-200 mt-0.5">
                       {activeThread.step || 'Step 1'}
                     </p>
                   </div>
 
                   <div>
-                    <span className="text-slate-500 block text-[11px]">Engagement Status</span>
-                    <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${getTagColor(activeThread.tag)}`}>
+                    <span className="text-slate-400 block text-[11px]">Engagement Status</span>
+                    <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider ${getTagColor(activeThread.tag)}`}>
                       {activeThread.tag}
                     </span>
                   </div>
@@ -601,12 +699,12 @@ export default function UnifiedInbox() {
               </div>
 
               {/* Deliverability Badge */}
-              <div className="pt-4 border-t border-[#181a26]">
+              <div className="pt-4 border-t border-white/[0.06]">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300 mb-1">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   <span>Deliverability Verified</span>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
+                <p className="text-[11px] text-slate-400 leading-snug">
                   Inbound response processed and sequence paused automatically.
                 </p>
               </div>
@@ -616,13 +714,30 @@ export default function UnifiedInbox() {
           </div>
         </>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8 bg-[#07080e]">
-          <div className="w-12 h-12 rounded-2xl bg-[#10121a] border border-[#1e2232] flex items-center justify-center mb-3 text-slate-400">
+        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 bg-[#06110c] bg-reachops-cosmic">
+          <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.09] flex items-center justify-center mb-3 text-emerald-400 shadow-lg shadow-emerald-500/20">
             <MessageSquare className="w-6 h-6" />
           </div>
           <p className="text-sm font-bold text-white">Select a conversation to view response</p>
-          <p className="text-xs text-slate-500 mt-1">Choose a responded prospect from the left to read their message and send replies.</p>
+          <p className="text-xs text-slate-400 mt-1">Choose a responded prospect from the left to read their message and send replies.</p>
         </div>
+      )}
+
+      {/* Schedule Next Follow-up Modal */}
+      {showScheduleModal && activeThread && (
+        <ScheduleFollowUpModal
+          isOpen={showScheduleModal}
+          onClose={() => setShowScheduleModal(false)}
+          onConfirm={(dateStr, timeStr, formattedLabel) => {
+            handleScheduleFollowUp(dateStr, timeStr, formattedLabel);
+            setShowScheduleModal(false);
+          }}
+          prospectName={activeThread.name}
+          prospectEmail={activeThread.email}
+          campaignName={activeThread.campaignName || 'Campaign Outreach'}
+          isSuppressed={Boolean(activeThread.status === 'Unsubscribed' || activeThread.tag === 'Bounced')}
+          suppressReason={activeThread.status === 'Unsubscribed' ? 'Prospect is unsubscribed.' : ''}
+        />
       )}
 
     </div>
