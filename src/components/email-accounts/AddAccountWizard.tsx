@@ -107,10 +107,17 @@ export default function AddAccountWizard({
       } catch (_) {}
 
       // Resilient endpoint resolution: Try /api/auth/google/url with workspaceId
-      let res: Response | null = await fetch(`/api/auth/google/url?workspaceId=${encodeURIComponent(wsId)}`, {
+      let res: Response | null = await fetch(`/.netlify/functions/auth-google-url?workspaceId=${encodeURIComponent(wsId)}`, {
         credentials: 'include',
         headers: { 'x-workspace-id': wsId },
       }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch(`/api/auth/google/url?workspaceId=${encodeURIComponent(wsId)}`, {
+          credentials: 'include',
+          headers: { 'x-workspace-id': wsId },
+        }).catch(() => null);
+      }
 
       if (!res || !res.ok) {
         res = await fetch(`/api/auth/google-url?workspaceId=${encodeURIComponent(wsId)}`, {
