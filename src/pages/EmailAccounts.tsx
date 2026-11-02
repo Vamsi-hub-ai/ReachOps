@@ -721,19 +721,37 @@ export default function EmailAccounts() {
         )
       )}
 
-      {/* Floating Real-time Success Toast */}
+      {/* Floating Real-time Success or Warning Toast */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-[#171717]/95 border border-emerald-500/30 text-white shadow-2xl backdrop-blur-xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className={`fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-[#171717]/95 border text-white shadow-2xl backdrop-blur-xl flex items-start gap-3 animate-in slide-in-from-bottom-5 duration-300 max-w-md ${
+          toastMsg.includes('⚠️') ? 'border-amber-500/40 shadow-amber-500/10' : 'border-emerald-500/30'
+        }`}>
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+            toastMsg.includes('⚠️') ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'
+          }`}>
+            {toastMsg.includes('⚠️') ? <AlertTriangle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
           </div>
-          <div>
-            <p className="text-xs font-bold text-white">{toastMsg}</p>
-            <p className="text-[10px] text-slate-400">Connected with live deliverability telemetry</p>
+          <div className="flex-1 space-y-1.5">
+            <p className="text-xs font-bold text-white leading-relaxed">{toastMsg}</p>
+            {toastMsg.includes('Gmail API is disabled') ? (
+              <div className="pt-1">
+                <a
+                  href="https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=670662356018"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs shadow-md transition-colors"
+                >
+                  <span>Enable Gmail API in Google Cloud</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            ) : (
+              <p className="text-[10px] text-slate-400">Connected with live deliverability telemetry</p>
+            )}
           </div>
           <button 
             onClick={() => setToastMsg(null)}
-            className="p-1 rounded-lg text-slate-400 hover:text-white ml-2"
+            className="p-1 rounded-lg text-slate-400 hover:text-white ml-2 shrink-0"
           >
             <X className="w-3.5 h-3.5" />
           </button>
