@@ -113,3 +113,4 @@ To ensure Netlify serverless functions can exchange tokens and sign in mailboxes
 | `SESSION_SECRET` | *(Secure JWT random secret string)* | Signs session cookies for user auth |
 
 5. After saving variables, trigger a deploy or push a commit to apply the changes to all serverless lambdas.
+

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   X, ArrowLeft, ArrowRight, Check, Copy, ExternalLink, ShieldCheck, 
-  Flame, Plane, Globe, Link2, Sparkles, Server, CheckCircle2, 
+  Flame, Sparkles, Server, CheckCircle2, 
   AlertTriangle, Info, Lock, Mail, Sliders, RefreshCw, KeyRound,
   Eye, EyeOff, Play, User, HelpCircle, Shield
 } from 'lucide-react';
@@ -16,15 +16,13 @@ interface AddAccountWizardProps {
 }
 
 type WizardStep = 
-  | 'CATEGORY_SELECT'      // Step 1: Add or Buy (Turnkey vs Connect Existing)
-  | 'PROVIDER_SELECT'      // Step 2: Choose Provider (Google, Microsoft, SMTP)
-  | 'GOOGLE_STRATEGY'      // Step 3: OAuth vs App Password
-  | 'GOOGLE_OAUTH_GUIDE'   // Step 4a: 4-step Google Workspace Admin Setup & OAuth launch
-  | 'APP_PASSWORD_GUIDE'   // Step 4b: Google App Password Tutorial & 3-step setup (Image 2)
-  | 'APP_PASSWORD_FORM'    // Step 4c: Enter Name, Email & 16-char App Password (Image 3)
-  | 'MICROSOFT_FORM'       // Step 4d: Microsoft 365 / Outlook setup
-  | 'SMTP_FORM'            // Step 4e: Custom SMTP/IMAP form
-  | 'TURNKEY_ORDER';       // Step 4f: Pre-warmed / AirMail / DFY configuration
+  | 'PROVIDER_SELECT'      // Step 1: Choose Provider (Google, Microsoft, SMTP)
+  | 'GOOGLE_STRATEGY'      // Step 2: OAuth vs App Password
+  | 'GOOGLE_OAUTH_GUIDE'   // Optional: 4-step Google Workspace Admin Setup & OAuth launch
+  | 'APP_PASSWORD_GUIDE'   // Optional: Google App Password Tutorial & 3-step setup
+  | 'APP_PASSWORD_FORM'    // Step 3a: Enter Name, Email & 16-char App Password
+  | 'MICROSOFT_FORM'       // Step 2b: Microsoft 365 / Outlook setup
+  | 'SMTP_FORM';           // Step 2c: Custom SMTP/IMAP form
 
 const DEFAULT_GOOGLE_CLIENT_ID = '670662356018-b553tq79s516rfj4ebt9m63ifvpkkav5.apps.googleusercontent.com';
 
@@ -35,7 +33,7 @@ export default function AddAccountWizard({
   googleClientId,
 }: AddAccountWizardProps) {
   const activeClientId = (googleClientId || import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID || '').trim() || DEFAULT_GOOGLE_CLIENT_ID;
-  const [step, setStep] = useState<WizardStep>('CATEGORY_SELECT');
+  const [step, setStep] = useState<WizardStep>('PROVIDER_SELECT');
   const [copiedClientId, setCopiedClientId] = useState(false);
   const [loadingOAuth, setLoadingOAuth] = useState(false);
   const [oauthErrorNotice, setOauthErrorNotice] = useState<string | null>(null);
@@ -43,10 +41,14 @@ export default function AddAccountWizard({
   const [videoStartSec, setVideoStartSec] = useState(0);
   const [videoTab, setVideoTab] = useState<'video' | 'steps'>('video');
 
-  // Turnkey Order State
-  const [turnkeyType, setTurnkeyType] = useState<'PRE_WARMED' | 'AIRMAIL' | 'DFY_GOOGLE'>('PRE_WARMED');
-  const [turnkeyCount, setTurnkeyCount] = useState(5);
-  const [turnkeySubmitted, setTurnkeySubmitted] = useState(false);
+  // Reset to first step whenever the modal opens
+  useEffect(() => {
+    if (open) {
+      setStep('PROVIDER_SELECT');
+      setLoadingOAuth(false);
+      setOauthErrorNotice(null);
+    }
+  }, [open]);
 
   // App Password Form State (Image 3)
   const [appFirstName, setAppFirstName] = useState('');
@@ -96,6 +98,9 @@ export default function AddAccountWizard({
   const handleLaunchGoogleOAuth = async () => {
     setLoadingOAuth(true);
     setOauthErrorNotice(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       let wsId = 'demo-workspace-id';
       try {
@@ -110,12 +115,14 @@ export default function AddAccountWizard({
       let res: Response | null = await fetch(`/.netlify/functions/auth-google-url?workspaceId=${encodeURIComponent(wsId)}`, {
         credentials: 'include',
         headers: { 'x-workspace-id': wsId },
+        signal: controller.signal,
       }).catch(() => null);
 
       if (!res || !res.ok) {
         res = await fetch(`/api/auth/google/url?workspaceId=${encodeURIComponent(wsId)}`, {
           credentials: 'include',
           headers: { 'x-workspace-id': wsId },
+          signal: controller.signal,
         }).catch(() => null);
       }
 
@@ -123,14 +130,18 @@ export default function AddAccountWizard({
         res = await fetch(`/api/auth/google-url?workspaceId=${encodeURIComponent(wsId)}`, {
           credentials: 'include',
           headers: { 'x-workspace-id': wsId },
+          signal: controller.signal,
         }).catch(() => null);
       }
       if (!res || !res.ok) {
         res = await fetch(`/api/auth-google-url?workspaceId=${encodeURIComponent(wsId)}`, {
           credentials: 'include',
           headers: { 'x-workspace-id': wsId },
+          signal: controller.signal,
         }).catch(() => null);
       }
+
+      clearTimeout(timeoutId);
 
       if (res && res.ok) {
         const data = await res.json().catch(() => null);
@@ -153,8 +164,13 @@ export default function AddAccountWizard({
       setOauthErrorNotice(msg);
       setLoadingOAuth(false);
     } catch (err: any) {
+      clearTimeout(timeoutId);
       console.error('Google OAuth launch error:', err);
-      setOauthErrorNotice('Network connection error when reaching Google OAuth service. Please retry.');
+      if (err?.name === 'AbortError') {
+        setOauthErrorNotice('Connection to Google OAuth service timed out. Please check your network and retry.');
+      } else {
+        setOauthErrorNotice('Network connection error when reaching Google OAuth service. Please retry.');
+      }
       setLoadingOAuth(false);
     }
   };
@@ -389,33 +405,6 @@ export default function AddAccountWizard({
     }
   };
 
-  const handleProvisionTurnkey = async () => {
-    setTurnkeySubmitted(true);
-    const domain = turnkeyType === 'AIRMAIL' ? 'airmail-cluster.io' : turnkeyType === 'DFY_GOOGLE' ? 'workspace-dfy.com' : 'growth-reachops.io';
-    for (let i = 1; i <= turnkeyCount; i++) {
-      const email = `outreach.${i}@${domain}`;
-      try {
-        const res = await fetch('/api/email-accounts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            displayName: `Outreach Lead #${i}`,
-            provider: turnkeyType === 'DFY_GOOGLE' ? 'GMAIL' : 'SMTP',
-            dailyLimit: 40,
-            warmupActive: true,
-          }),
-        });
-        if (res.ok) {
-          const acc = await res.json();
-          onAccountAdded(acc);
-        }
-      } catch (e) {
-        console.warn('Turnkey create warning:', e);
-      }
-    }
-  };
-
   // SVGs for clean authentic branding
   const GoogleGIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -442,17 +431,15 @@ export default function AddAccountWizard({
         {/* Top Header Bar */}
         <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
           <div className="flex items-center gap-3">
-            {step !== 'CATEGORY_SELECT' && (
+            {step !== 'PROVIDER_SELECT' && (
               <button
                 onClick={() => {
-                  if (step === 'PROVIDER_SELECT') setStep('CATEGORY_SELECT');
-                  else if (step === 'GOOGLE_STRATEGY') setStep('PROVIDER_SELECT');
+                  if (step === 'GOOGLE_STRATEGY') setStep('PROVIDER_SELECT');
                   else if (step === 'GOOGLE_OAUTH_GUIDE') setStep('GOOGLE_STRATEGY');
                   else if (step === 'APP_PASSWORD_GUIDE') setStep('GOOGLE_STRATEGY');
                   else if (step === 'APP_PASSWORD_FORM') setStep('APP_PASSWORD_GUIDE');
                   else if (step === 'MICROSOFT_FORM') setStep('PROVIDER_SELECT');
                   else if (step === 'SMTP_FORM') setStep('PROVIDER_SELECT');
-                  else if (step === 'TURNKEY_ORDER') setStep('CATEGORY_SELECT');
                 }}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
                 title="Go back"
@@ -463,7 +450,6 @@ export default function AddAccountWizard({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-white tracking-tight">
-                  {step === 'CATEGORY_SELECT' && 'Add or Buy Email Accounts'}
                   {step === 'PROVIDER_SELECT' && 'Connect Existing Mailbox'}
                   {step === 'GOOGLE_STRATEGY' && 'Google Workspace Authentication'}
                   {step === 'GOOGLE_OAUTH_GUIDE' && 'Google Workspace Domain Delegation'}
@@ -471,22 +457,18 @@ export default function AddAccountWizard({
                   {step === 'APP_PASSWORD_FORM' && 'Connect via App Password'}
                   {step === 'MICROSOFT_FORM' && 'Connect Microsoft 365 / Outlook'}
                   {step === 'SMTP_FORM' && 'Connect Custom SMTP / IMAP'}
-                  {step === 'TURNKEY_ORDER' && 'Order Turnkey Inboxes'}
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#10b981]/15 text-emerald-400 border border-white/[0.1]">
-                  {step === 'CATEGORY_SELECT' && 'Step 1 of 3'}
-                  {step === 'PROVIDER_SELECT' && 'Step 2 of 3'}
-                  {step === 'GOOGLE_STRATEGY' && 'Step 3 of 4'}
+                  {step === 'PROVIDER_SELECT' && 'Step 1 of 3'}
+                  {step === 'GOOGLE_STRATEGY' && 'Step 2 of 3'}
                   {step === 'GOOGLE_OAUTH_GUIDE' && 'OAuth Setup'}
                   {step === 'APP_PASSWORD_GUIDE' && 'App Pass: Step 1 of 2'}
                   {step === 'APP_PASSWORD_FORM' && 'App Pass: Step 2 of 2'}
-                  {step === 'MICROSOFT_FORM' && 'Microsoft 365'}
-                  {step === 'SMTP_FORM' && 'Configuration'}
-                  {step === 'TURNKEY_ORDER' && 'Provisioning'}
+                  {step === 'MICROSOFT_FORM' && 'Step 2 of 2'}
+                  {step === 'SMTP_FORM' && 'Step 2 of 2'}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                {step === 'CATEGORY_SELECT' && 'Select whether to deploy pre-warmed sending inboxes or link your existing domains.'}
                 {step === 'PROVIDER_SELECT' && 'Select your mailbox provider for secure, high-deliverability sending.'}
                 {step === 'GOOGLE_STRATEGY' && 'Choose between direct API OAuth 2.0 or legacy app password.'}
                 {step === 'GOOGLE_OAUTH_GUIDE' && 'Authorize ReachOps in your Google Workspace Admin Console to enable API sending.'}
@@ -494,7 +476,6 @@ export default function AddAccountWizard({
                 {step === 'APP_PASSWORD_FORM' && 'Enter your sender name, email, and 16-character Google App Password.'}
                 {step === 'MICROSOFT_FORM' && 'Connect your Microsoft 365 / Outlook email with dedicated Exchange sending.'}
                 {step === 'SMTP_FORM' && 'Configure custom SMTP sending and IMAP reply-tracking parameters.'}
-                {step === 'TURNKEY_ORDER' && 'Ready-to-use mailboxes primed with automated SPF, DKIM, and DMARC.'}
               </p>
             </div>
           </div>
@@ -511,147 +492,7 @@ export default function AddAccountWizard({
         <div className="p-6 overflow-y-auto space-y-6">
 
           {/* ========================================================================= */}
-          {/* STEP 1: CATEGORY SELECTION (Turnkey vs Connect Existing)                  */}
-          {/* ========================================================================= */}
-          {step === 'CATEGORY_SELECT' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                {/* Pre-Warmed Inboxes */}
-                <div 
-                  onClick={() => {
-                    setTurnkeyType('PRE_WARMED');
-                    setStep('TURNKEY_ORDER');
-                  }}
-                  className="group relative p-5 rounded-xl bg-gradient-to-br from-white/[0.04] to-white/[0.02] border border-white/[0.08] hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10 transition-all cursor-pointer flex flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500/20 to-orange-500/30 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm group-hover:scale-105 transition-transform">
-                      <Flame className="w-5 h-5" />
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                      Zero Setup
-                    </span>
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="text-base font-bold text-white group-hover:text-amber-300 transition-colors">
-                      Pre-Warmed Inboxes
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                      Aged domains with established sender reputation and primed SPF/DKIM/DMARC. Ready to send immediately with high inbox placement.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs text-slate-400">
-                    <span className="text-emerald-400 font-medium flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      14 Domains Available
-                    </span>
-                    <span className="text-amber-400 font-semibold group-hover:translate-x-1 transition-transform inline-flex items-center">
-                      Configure &rarr;
-                    </span>
-                  </div>
-                </div>
-
-                {/* ReachOps AirMail Inboxes */}
-                <div 
-                  onClick={() => {
-                    setTurnkeyType('AIRMAIL');
-                    setStep('TURNKEY_ORDER');
-                  }}
-                  className="group relative p-5 rounded-xl bg-gradient-to-br from-white/[0.04] to-white/[0.02] border border-white/[0.08] hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 transition-all cursor-pointer flex flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/30 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-sm group-hover:scale-105 transition-transform">
-                      <Plane className="w-5 h-5" />
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-                      High Volume • New
-                    </span>
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
-                      ReachOps AirMail Clusters
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                      High-throughput dedicated sending network engineered for deliverability, dedicated rotating IPs, and zero domain burn.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs text-slate-400">
-                    <span className="text-cyan-400 font-medium">Up to 5,000 sends / day</span>
-                    <span className="text-cyan-400 font-semibold group-hover:translate-x-1 transition-transform inline-flex items-center">
-                      Configure &rarr;
-                    </span>
-                  </div>
-                </div>
-
-                {/* DFY Google Accounts */}
-                <div 
-                  onClick={() => {
-                    setTurnkeyType('DFY_GOOGLE');
-                    setStep('TURNKEY_ORDER');
-                  }}
-                  className="group relative p-5 rounded-xl bg-gradient-to-br from-white/[0.04] to-white/[0.02] border border-white/[0.08] hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer flex flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/30 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm group-hover:scale-105 transition-transform">
-                      <Globe className="w-5 h-5" />
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                      Turnkey Setup
-                    </span>
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="text-base font-bold text-white group-hover:text-emerald-300 transition-colors">
-                      DFY Google Workspace
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                      Done-for-you Google Workspace accounts registered, DNS records configured (MX, SPF, DKIM, DMARC), and warmed up for you.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs text-slate-400">
-                    <span className="text-slate-400">Full admin handover</span>
-                    <span className="text-emerald-400 font-semibold group-hover:translate-x-1 transition-transform inline-flex items-center">
-                      Configure &rarr;
-                    </span>
-                  </div>
-                </div>
-
-                {/* Connect Existing Accounts (Primary BYO) */}
-                <div 
-                  onClick={() => setStep('PROVIDER_SELECT')}
-                  className="group relative p-5 rounded-xl bg-gradient-to-br from-[#151930] to-[#0F1122] border-2 border-[#8789FF]/40 hover:border-[#10b981] hover:shadow-xl hover:shadow-emerald-500/20 transition-all cursor-pointer flex flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#10b981]/25 to-indigo-600/30 border border-[#10b981]/30 flex items-center justify-center text-emerald-400 shadow-sm group-hover:scale-105 transition-transform">
-                      <Link2 className="w-5 h-5" />
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#10b981]/15 text-emerald-400 border border-[#10b981]/30">
-                      Most Popular • BYO
-                    </span>
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="text-base font-bold text-white group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                      Connect Existing Accounts
-                      <Sparkles className="w-4 h-4 text-emerald-400" />
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      Connect your own Google Workspace, Microsoft 365, or private SMTP/IMAP servers directly via OAuth or credentials.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-[#23274A] flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Unlimited mailboxes</span>
-                    <span className="text-emerald-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center">
-                      Connect Mailbox &rarr;
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* STEP 2: PROVIDER SELECTION (Google vs Microsoft vs SMTP)                  */}
+          {/* STEP 1: PROVIDER SELECTION (Google vs Microsoft vs SMTP)                  */}
           {/* ========================================================================= */}
           {step === 'PROVIDER_SELECT' && (
             <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
@@ -1683,100 +1524,6 @@ export default function AddAccountWizard({
                 </Button>
               </div>
             </form>
-          )}
-
-          {/* ========================================================================= */}
-          {/* STEP 4E: TURNKEY / AIRMAIL / DFY CONFIGURATION & ORDER                   */}
-          {/* ========================================================================= */}
-          {step === 'TURNKEY_ORDER' && (
-            <div className="space-y-5 animate-in slide-in-from-right-4 fade-in duration-300">
-              {turnkeySubmitted ? (
-                <div className="text-center py-8 space-y-4">
-                  <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto animate-in zoom-in-50">
-                    <CheckCircle2 className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-lg font-bold text-white">Provisioning Request Confirmed!</h3>
-                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                    We have allocated your {turnkeyCount} sending mailboxes. Our automated infrastructure engine is provisioning DNS records and warming up IP pools. Your mailboxes will appear in your dashboard within minutes.
-                  </p>
-                  <Button
-                    onClick={onClose}
-                    className="bg-[#10b981] hover:bg-[#8889FF] text-[#0B0C15] font-bold px-8 h-10 mt-2"
-                  >
-                    Done
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-white text-sm">
-                        {turnkeyType === 'PRE_WARMED' && 'Pre-Warmed Inboxes Package'}
-                        {turnkeyType === 'AIRMAIL' && 'AirMail Dedicated Cluster Package'}
-                        {turnkeyType === 'DFY_GOOGLE' && 'DFY Google Workspace Package'}
-                      </h4>
-                      <span className="text-xs font-bold text-emerald-400">
-                        {turnkeyCount} Inboxes ({turnkeyCount * 40} emails/day capacity)
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 pt-2">
-                      <div className="flex justify-between text-xs text-slate-400">
-                        <span>Select Mailbox Quantity:</span>
-                        <span className="font-bold text-white">{turnkeyCount} Inboxes</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="2"
-                        max="25"
-                        step="1"
-                        value={turnkeyCount}
-                        onChange={(e) => setTurnkeyCount(parseInt(e.target.value))}
-                        className="w-full h-2 bg-[#232742] rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-white/[0.02] border border-[#20243E] space-y-2.5">
-                    <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider">What&apos;s Included</h5>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-400">
-                      <li className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Authenticated SPF, DKIM, DMARC</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Automated Custom Tracking Domain</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Pre-tested against spam firewalls</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Continuous auto-healing deliverability</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-end gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep('CATEGORY_SELECT')}
-                      className="bg-white/[0.04] border-[#252948] text-slate-300 hover:text-white"
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      onClick={handleProvisionTurnkey}
-                      className="bg-[#10b981] hover:bg-[#8889FF] text-[#0A0B14] font-bold px-6 h-10 shadow-lg shadow-emerald-500/20 border-none cursor-pointer"
-                    >
-                      Instant Provision ({turnkeyCount} Accounts)
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
           )}
 
         </div>

@@ -250,7 +250,7 @@ export default function EmailAccounts() {
           className="btn-reachops-primary h-11 px-5 font-bold shadow-lg shadow-[#a31c1b]/25 border-none transition-all flex items-center gap-2 rounded-xl cursor-pointer active:scale-95"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Add or Buy Accounts</span>
+          <span>Add Account</span>
         </Button>
       </div>
 
@@ -712,9 +712,9 @@ export default function EmailAccounts() {
             <div className="w-12 h-12 bg-[#10b981]/15 border border-[#10b981]/30 rounded-2xl flex items-center justify-center shadow-lg shadow-[#a31c1b]/25 group-hover:scale-105 transition-transform mb-4">
               <Plus className="w-6 h-6 text-emerald-300" />
             </div>
-            <h3 className="text-base font-bold text-white">Add or Buy Accounts</h3>
+            <h3 className="text-base font-bold text-white">Connect Email Account</h3>
             <p className="text-center mt-2 px-4 text-xs text-slate-400">
-              Deploy pre-warmed inboxes, DFY domains, or connect Google &amp; Microsoft.
+              Connect your Google Workspace, Microsoft 365, or private SMTP/IMAP servers.
             </p>
           </div>
         </div>
