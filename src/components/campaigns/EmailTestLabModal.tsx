@@ -877,9 +877,35 @@ export default function EmailTestLabModal({
               )}
 
               {sendErrorToast && (
-                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{sendErrorToast}</span>
+                <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-semibold space-y-2 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed">{sendErrorToast}</span>
+                    </div>
+                    <button
+                      onClick={() => setSendErrorToast(null)}
+                      className="text-slate-400 hover:text-white shrink-0 p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {sendErrorToast.includes('Google') || sendErrorToast.includes('535') ? (
+                    <div className="pt-1 flex flex-wrap items-center gap-2 text-[11px]">
+                      <a
+                        href="https://myaccount.google.com/apppasswords"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold inline-flex items-center gap-1 transition-colors"
+                      >
+                        <span>Generate Google App Password</span>
+                        <ExternalLink className="w-3 h-3 text-emerald-400" />
+                      </a>
+                      <span className="text-slate-400 text-[10px]">
+                        Google disabled regular passwords for mail apps. Use a 16-char App Password or OAuth 2.0.
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               )}
 

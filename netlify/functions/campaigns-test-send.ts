@@ -178,27 +178,13 @@ export const handler: Handler = async (event) => {
             email: { equals: targetEmail },
           },
         });
-      }
-
-      if (!account) {
-        account = await prisma.emailAccount.findFirst({
-          where: {
-            workspaceId: { in: auth.workspaceIds },
-            status: 'ACTIVE',
-            accessTokenEncrypted: { not: '' },
-          },
-          orderBy: { updatedAt: 'desc' },
-        });
-      }
-
-      if (!account) {
-        account = await prisma.emailAccount.findFirst({
-          where: {
-            status: 'ACTIVE',
-            accessTokenEncrypted: { not: '' },
-          },
-          orderBy: { updatedAt: 'desc' },
-        });
+        if (!account) {
+          account = await prisma.emailAccount.findFirst({
+            where: {
+              email: { equals: targetEmail },
+            },
+          });
+        }
       }
     } catch (dbErr: any) {
       console.warn('Database email account resolution note:', dbErr?.message);
@@ -207,7 +193,11 @@ export const handler: Handler = async (event) => {
     let realDispatchResult: any = null;
     let dispatchError: string | null = null;
 
-    if (account && (account.accessTokenEncrypted || account.refreshTokenEncrypted)) {
+    // Only attempt real server dispatch if the account matches the sender and has credentials
+    const targetEmail = senderEmail ? senderEmail.toLowerCase().trim() : null;
+    const isMatchingAccount = account && (!targetEmail || account.email.toLowerCase() === targetEmail);
+
+    if (isMatchingAccount && (account.accessTokenEncrypted || account.refreshTokenEncrypted)) {
       try {
         realDispatchResult = await sendSequenceEmail(
           account.id,
@@ -219,7 +209,11 @@ export const handler: Handler = async (event) => {
         );
       } catch (err: any) {
         console.warn('Real test email dispatch error:', err?.message);
-        dispatchError = err?.message;
+        let errMsg = err?.message || 'Dispatch error';
+        if (errMsg.includes('535') || errMsg.includes('BadCredentials') || errMsg.includes('Invalid mailbox credentials')) {
+          errMsg = 'Google rejected the mailbox credentials (535-5.7.8). For Google/Workspace accounts, please generate a 16-character Google App Password (not your normal account password), or connect via Google OAuth 2.0.';
+        }
+        dispatchError = errMsg;
       }
     }
 
