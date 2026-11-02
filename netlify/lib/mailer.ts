@@ -62,13 +62,22 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+function formatHtmlBody(body: string): string {
+  if (!body) return '';
+  if (!/<(p|br|div|table|h[1-6])/i.test(body)) {
+    return body.replace(/\r\n|\r|\n/g, '<br/>');
+  }
+  return body;
+}
+
 /**
  * Creates RFC 5322 MIME message optimized for 100% Primary Inbox placement.
  * - Avoids List-Unsubscribe headers that trigger Gmail/Outlook Promotions Tab routing.
  * - Enforces clean domain alignment on Message-ID.
  * - Places text/plain part before text/html part.
+ * - Omit X-Mailer to avoid automated marketing tool fingerprinting.
  */
-function createMimeMessage(
+export function createMimeMessage(
   to: string, 
   from: string, 
   subject: string, 
@@ -81,6 +90,7 @@ function createMimeMessage(
   }
 ): { base64Url: string; rawMime: string } {
   const boundary = `----=_NextPart_${Math.random().toString(36).substring(2)}`;
+  const effectiveHtml = formatHtmlBody(htmlBody);
   const plainTextBody = stripHtml(htmlBody);
 
   // Extract pure sender email & domain for Message-ID alignment
@@ -97,7 +107,6 @@ function createMimeMessage(
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: ${cleanMessageId}`,
     'MIME-Version: 1.0',
-    'X-Mailer: ReachOps Outbound Engine/2.0',
   ];
 
   if (options?.inReplyTo) {
@@ -120,7 +129,7 @@ function createMimeMessage(
     'Content-Type: text/html; charset="UTF-8"',
     'Content-Transfer-Encoding: 8bit',
     '',
-    htmlBody,
+    effectiveHtml,
     '',
     `--${boundary}--`
   ].join('\r\n');
@@ -202,6 +211,11 @@ export async function sendSequenceEmail(
 
     const decryptedSecret = account.accessTokenEncrypted ? decrypt(account.accessTokenEncrypted) : '';
     const decryptedRefresh = account.refreshTokenEncrypted ? decrypt(account.refreshTokenEncrypted) : '';
+    // Google App Passwords are 16-characters often spaced: "abcd efgh ijkl mnop". Stripping whitespace ensures SMTP auth succeeds.
+    const cleanSecret = decryptedSecret.replace(/\s+/g, '');
+    const cleanAppPassword = (account.provider === 'GMAIL' || account.email.toLowerCase().includes('@gmail') || cleanSecret.length === 16)
+      ? cleanSecret
+      : decryptedSecret;
 
     // DISPATCH METHOD 1: Google OAuth 2.0 (Account has refresh token or OAuth access token)
     if (account.provider === 'GMAIL' && (decryptedRefresh || decryptedSecret.startsWith('ya29.'))) {
@@ -233,7 +247,7 @@ export async function sendSequenceEmail(
           secure: true,
           auth: {
             user: account.email,
-            pass: decryptedSecret,
+            pass: cleanAppPassword,
           },
         },
         {
@@ -264,7 +278,7 @@ export async function sendSequenceEmail(
           secure: false,
           auth: {
             user: account.email,
-            pass: decryptedSecret,
+            pass: cleanAppPassword,
           },
         },
         {
@@ -296,7 +310,7 @@ export async function sendSequenceEmail(
         secure: smtpPort === 465,
         auth: {
           user: account.email,
-          pass: decryptedSecret,
+          pass: cleanAppPassword,
         },
       },
       {

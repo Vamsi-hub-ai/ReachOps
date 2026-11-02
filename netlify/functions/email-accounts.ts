@@ -95,9 +95,12 @@ export const handler: Handler = async (event) => {
       }
 
       const cleanEmail = String(email).trim().toLowerCase();
-      const rawSecret = (appPassword || password || smtpPass || '').trim();
-      const encryptedSecret = rawSecret ? encrypt(rawSecret) : encrypt('token-' + Date.now());
       const selectedProvider = provider ? String(provider).toUpperCase() : 'GMAIL';
+      let rawSecret = (appPassword || password || smtpPass || '').trim();
+      if (selectedProvider === 'GMAIL' || cleanEmail.includes('@gmail') || rawSecret.replace(/\s+/g, '').length === 16) {
+        rawSecret = rawSecret.replace(/\s+/g, '');
+      }
+      const encryptedSecret = rawSecret ? encrypt(rawSecret) : encrypt('token-' + Date.now());
       const parsedLimit = Number(dailyLimit) || 50;
 
       // Check if this account already exists in this workspace
