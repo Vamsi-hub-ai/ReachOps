@@ -24,6 +24,11 @@ export function encrypt(text: string): string {
 export function decrypt(text: string): string {
   if (!text) return text;
   
+  // Return unencrypted plaintext directly if not formatted as iv:tag:cipher
+  if (!text.includes(':')) {
+    return text;
+  }
+  
   try {
     const key = Buffer.from(ENCRYPTION_KEY.padEnd(32, '0').slice(0, 32));
     const parts = text.split(':');

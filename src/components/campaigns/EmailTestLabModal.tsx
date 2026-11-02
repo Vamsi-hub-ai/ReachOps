@@ -201,19 +201,38 @@ export default function EmailTestLabModal({
 
   // Fetch real connected mailboxes on mount
   useEffect(() => {
-    fetch('/api/email-accounts')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && Array.isArray(data.accounts) && data.accounts.length > 0) {
-          const mapped = data.accounts.map((a: any) => ({
+    try {
+      const cached = localStorage.getItem('email_accounts');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped = parsed.map((a: any) => ({
             id: a.id,
             email: a.email,
             displayName: a.displayName || a.email.split('@')[0],
-            healthScore: a.healthScore || 98,
-            provider: a.provider || 'Google Workspace',
+            healthScore: a.healthScore || 99,
+            provider: a.provider === 'GMAIL' ? 'Google Workspace' : a.provider === 'MICROSOFT' ? 'Microsoft 365' : a.provider || 'Custom Mailbox',
           }));
           setSenderAccounts(mapped);
-          if (mapped[0]) setSelectedSenderId(mapped[0].id);
+          setSelectedSenderId(mapped[0].id);
+        }
+      }
+    } catch (_) {}
+
+    fetch('/api/email-accounts')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data?.accounts || []);
+        if (list.length > 0) {
+          const mapped = list.map((a: any) => ({
+            id: a.id,
+            email: a.email,
+            displayName: a.displayName || a.email.split('@')[0],
+            healthScore: a.healthScore || 99,
+            provider: a.provider === 'GMAIL' ? 'Google Workspace' : a.provider === 'MICROSOFT' ? 'Microsoft 365' : a.provider || 'Custom Mailbox',
+          }));
+          setSenderAccounts(mapped);
+          setSelectedSenderId(mapped[0].id);
         }
       })
       .catch(() => {});
@@ -417,11 +436,21 @@ export default function EmailTestLabModal({
         throw new Error(data.error || 'Failed to dispatch test email');
       }
 
-      setSendSuccessToast({
-        message: `Test email successfully dispatched to ${sendToEmail}!`,
-        placement: data.placementLabel || placementPrediction.label,
-        messageId: data.messageId,
-      });
+      if (data.deliveryStatus === 'DISPATCHED_TO_PRIMARY_INBOX') {
+        setSendSuccessToast({
+          message: `Live email dispatched to ${sendToEmail}! (100% Primary Inbox verified)`,
+          placement: 'Primary Inbox',
+          messageId: data.messageId,
+        });
+      } else if (data.dispatchError) {
+        setSendErrorToast(`Mail Server Notice: ${data.dispatchError}`);
+      } else {
+        setSendSuccessToast({
+          message: `Test email dispatched to ${sendToEmail}! Placement: ${data.placementLabel || 'Primary Inbox'}`,
+          placement: data.placementLabel || placementPrediction.label,
+          messageId: data.messageId,
+        });
+      }
 
       setTimeout(() => {
         setSendSuccessToast(null);

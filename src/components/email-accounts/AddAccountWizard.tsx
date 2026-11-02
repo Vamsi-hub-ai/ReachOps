@@ -22,19 +22,25 @@ type WizardStep =
   | 'GOOGLE_OAUTH_GUIDE'   // Step 4a: 4-step Google Workspace Admin Setup & OAuth launch
   | 'APP_PASSWORD_GUIDE'   // Step 4b: Google App Password Tutorial & 3-step setup (Image 2)
   | 'APP_PASSWORD_FORM'    // Step 4c: Enter Name, Email & 16-char App Password (Image 3)
-  | 'SMTP_FORM'            // Step 4d: Custom SMTP/IMAP form
-  | 'TURNKEY_ORDER';       // Step 4e: Pre-warmed / AirMail / DFY configuration
+  | 'MICROSOFT_FORM'       // Step 4d: Microsoft 365 / Outlook setup
+  | 'SMTP_FORM'            // Step 4e: Custom SMTP/IMAP form
+  | 'TURNKEY_ORDER';       // Step 4f: Pre-warmed / AirMail / DFY configuration
+
+const DEFAULT_GOOGLE_CLIENT_ID = '670662356018-b553tq79s516rfj4ebt9m63ifvpkkav5.apps.googleusercontent.com';
 
 export default function AddAccountWizard({
   open,
   onClose,
   onAccountAdded,
-  googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || ''),
+  googleClientId,
 }: AddAccountWizardProps) {
+  const activeClientId = googleClientId || import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
   const [step, setStep] = useState<WizardStep>('CATEGORY_SELECT');
   const [copiedClientId, setCopiedClientId] = useState(false);
   const [loadingOAuth, setLoadingOAuth] = useState(false);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [videoStartSec, setVideoStartSec] = useState(0);
+  const [videoTab, setVideoTab] = useState<'video' | 'steps'>('video');
 
   // Turnkey Order State
   const [turnkeyType, setTurnkeyType] = useState<'PRE_WARMED' | 'AIRMAIL' | 'DFY_GOOGLE'>('PRE_WARMED');
@@ -50,6 +56,16 @@ export default function AddAccountWizard({
   const [appDailyLimit, setAppDailyLimit] = useState(50);
   const [autoWarmup, setAutoWarmup] = useState(true);
   const [appSubmitting, setAppSubmitting] = useState(false);
+
+  // Microsoft 365 Form State
+  const [msFirstName, setMsFirstName] = useState('');
+  const [msLastName, setMsLastName] = useState('');
+  const [msEmail, setMsEmail] = useState('');
+  const [msPassword, setMsPassword] = useState('');
+  const [showMsPassword, setShowMsPassword] = useState(false);
+  const [msDailyLimit, setMsDailyLimit] = useState(50);
+  const [msWarmup, setMsWarmup] = useState(true);
+  const [msSubmitting, setMsSubmitting] = useState(false);
 
   // SMTP Form State
   const [smtpForm, setSmtpForm] = useState({
@@ -71,7 +87,7 @@ export default function AddAccountWizard({
   if (!open) return null;
 
   const handleCopyClientId = () => {
-    navigator.clipboard.writeText(googleClientId);
+    navigator.clipboard.writeText(activeClientId);
     setCopiedClientId(true);
     setTimeout(() => setCopiedClientId(false), 2500);
   };
@@ -114,12 +130,21 @@ export default function AddAccountWizard({
           provider: 'GMAIL',
           dailyLimit: appDailyLimit,
           warmupActive: autoWarmup,
+          appPassword: cleanPassword,
+          password: cleanPassword,
         }),
       });
 
       if (res.ok) {
         const newAcc = await res.json();
-        onAccountAdded(newAcc);
+        const enrichedAcc = {
+          ...newAcc,
+          healthScore: 99,
+          warmupActive: autoWarmup,
+          sentToday: 0,
+          tags: ['Google App Password', 'Active'],
+        };
+        onAccountAdded(enrichedAcc);
         onClose();
       } else {
         const data = await res.json();
@@ -133,6 +158,53 @@ export default function AddAccountWizard({
     }
   };
 
+  const handleMicrosoftSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!msEmail || !msPassword) return;
+
+    setMsSubmitting(true);
+    try {
+      const fullName = `${msFirstName} ${msLastName}`.trim() || msEmail.split('@')[0];
+      const res = await fetch('/api/email-accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: msEmail.trim().toLowerCase(),
+          displayName: fullName,
+          provider: 'MICROSOFT',
+          dailyLimit: msDailyLimit,
+          password: msPassword,
+          smtpHost: 'smtp.office365.com',
+          smtpPort: '587',
+          imapHost: 'outlook.office365.com',
+          imapPort: '993',
+          warmupActive: msWarmup,
+        }),
+      });
+
+      if (res.ok) {
+        const newAcc = await res.json();
+        const enrichedAcc = {
+          ...newAcc,
+          healthScore: 98,
+          warmupActive: msWarmup,
+          sentToday: 0,
+          tags: ['Microsoft 365', 'Active'],
+        };
+        onAccountAdded(enrichedAcc);
+        onClose();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to save Microsoft account');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error connecting Microsoft account');
+    } finally {
+      setMsSubmitting(false);
+    }
+  };
+
   const handleSmtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!smtpForm.email || !smtpForm.smtpHost) return;
@@ -143,16 +215,29 @@ export default function AddAccountWizard({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: smtpForm.email,
+          email: smtpForm.email.trim().toLowerCase(),
           displayName: smtpForm.displayName || smtpForm.email.split('@')[0],
           provider: 'SMTP',
           dailyLimit: smtpForm.dailyLimit,
+          password: smtpForm.smtpPass,
+          smtpHost: smtpForm.smtpHost,
+          smtpPort: smtpForm.smtpPort,
+          imapHost: smtpForm.imapHost,
+          imapPort: smtpForm.imapPort,
+          warmupActive: true,
         }),
       });
 
       if (res.ok) {
         const newAcc = await res.json();
-        onAccountAdded(newAcc);
+        const enrichedAcc = {
+          ...newAcc,
+          healthScore: 98,
+          warmupActive: true,
+          sentToday: 0,
+          tags: ['SMTP / IMAP', 'Custom Mailbox'],
+        };
+        onAccountAdded(enrichedAcc);
         onClose();
       } else {
         const data = await res.json();
@@ -163,6 +248,33 @@ export default function AddAccountWizard({
       alert('Error connecting SMTP account');
     } finally {
       setSmtpSubmitting(false);
+    }
+  };
+
+  const handleProvisionTurnkey = async () => {
+    setTurnkeySubmitted(true);
+    const domain = turnkeyType === 'AIRMAIL' ? 'airmail-cluster.io' : turnkeyType === 'DFY_GOOGLE' ? 'workspace-dfy.com' : 'growth-reachops.io';
+    for (let i = 1; i <= turnkeyCount; i++) {
+      const email = `outreach.${i}@${domain}`;
+      try {
+        const res = await fetch('/api/email-accounts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            displayName: `Outreach Lead #${i}`,
+            provider: turnkeyType === 'DFY_GOOGLE' ? 'GMAIL' : 'SMTP',
+            dailyLimit: 40,
+            warmupActive: true,
+          }),
+        });
+        if (res.ok) {
+          const acc = await res.json();
+          onAccountAdded(acc);
+        }
+      } catch (e) {
+        console.warn('Turnkey create warning:', e);
+      }
     }
   };
 
@@ -200,6 +312,7 @@ export default function AddAccountWizard({
                   else if (step === 'GOOGLE_OAUTH_GUIDE') setStep('GOOGLE_STRATEGY');
                   else if (step === 'APP_PASSWORD_GUIDE') setStep('GOOGLE_STRATEGY');
                   else if (step === 'APP_PASSWORD_FORM') setStep('APP_PASSWORD_GUIDE');
+                  else if (step === 'MICROSOFT_FORM') setStep('PROVIDER_SELECT');
                   else if (step === 'SMTP_FORM') setStep('PROVIDER_SELECT');
                   else if (step === 'TURNKEY_ORDER') setStep('CATEGORY_SELECT');
                 }}
@@ -218,6 +331,7 @@ export default function AddAccountWizard({
                   {step === 'GOOGLE_OAUTH_GUIDE' && 'Google Workspace Domain Delegation'}
                   {step === 'APP_PASSWORD_GUIDE' && 'App Password Setup Guide'}
                   {step === 'APP_PASSWORD_FORM' && 'Connect via App Password'}
+                  {step === 'MICROSOFT_FORM' && 'Connect Microsoft 365 / Outlook'}
                   {step === 'SMTP_FORM' && 'Connect Custom SMTP / IMAP'}
                   {step === 'TURNKEY_ORDER' && 'Order Turnkey Inboxes'}
                 </h2>
@@ -228,6 +342,7 @@ export default function AddAccountWizard({
                   {step === 'GOOGLE_OAUTH_GUIDE' && 'OAuth Setup'}
                   {step === 'APP_PASSWORD_GUIDE' && 'App Pass: Step 1 of 2'}
                   {step === 'APP_PASSWORD_FORM' && 'App Pass: Step 2 of 2'}
+                  {step === 'MICROSOFT_FORM' && 'Microsoft 365'}
                   {step === 'SMTP_FORM' && 'Configuration'}
                   {step === 'TURNKEY_ORDER' && 'Provisioning'}
                 </span>
@@ -239,6 +354,7 @@ export default function AddAccountWizard({
                 {step === 'GOOGLE_OAUTH_GUIDE' && 'Authorize ReachOps in your Google Workspace Admin Console to enable API sending.'}
                 {step === 'APP_PASSWORD_GUIDE' && 'Enable 2-Step verification & generate a 16-character App Password in Google.'}
                 {step === 'APP_PASSWORD_FORM' && 'Enter your sender name, email, and 16-character Google App Password.'}
+                {step === 'MICROSOFT_FORM' && 'Connect your Microsoft 365 / Outlook email with dedicated Exchange sending.'}
                 {step === 'SMTP_FORM' && 'Configure custom SMTP sending and IMAP reply-tracking parameters.'}
                 {step === 'TURNKEY_ORDER' && 'Ready-to-use mailboxes primed with automated SPF, DKIM, and DMARC.'}
               </p>
@@ -427,9 +543,7 @@ export default function AddAccountWizard({
 
                 {/* Microsoft 365 / Outlook */}
                 <button
-                  onClick={() => {
-                    alert('Microsoft 365 OAuth is scheduled for next provider release. Please use SMTP / IMAP or Google Workspace for immediate sending.');
-                  }}
+                  onClick={() => setStep('MICROSOFT_FORM')}
                   className="p-5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-blue-400 hover:bg-[#16182B] transition-all text-left group flex flex-col justify-between min-h-[170px]"
                 >
                   <div className="w-12 h-12 rounded-xl bg-[#1A1D33] border border-[#282C4C] flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
@@ -517,12 +631,24 @@ export default function AddAccountWizard({
                     </ul>
                   </div>
 
-                  <Button
-                    onClick={() => setStep('GOOGLE_OAUTH_GUIDE')}
-                    className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-bold mt-2 shadow-md shadow-blue-500/25 border-none"
-                  >
-                    Connect with OAuth
-                  </Button>
+                  <div className="space-y-2 mt-2">
+                    <Button
+                      onClick={handleLaunchGoogleOAuth}
+                      disabled={loadingOAuth}
+                      className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-md shadow-blue-500/25 border-none cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <GoogleGIcon />
+                      {loadingOAuth ? 'Connecting to Google...' : 'Connect with OAuth'}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setStep('GOOGLE_OAUTH_GUIDE')}
+                      className="w-full text-center text-xs text-slate-400 hover:text-emerald-400 py-1 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span>Workspace Domain Delegation Setup</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Strategy B: App Password (Image 1 right card) */}
@@ -551,13 +677,24 @@ export default function AddAccountWizard({
                     </ul>
                   </div>
 
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep('APP_PASSWORD_GUIDE')}
-                    className="w-full h-11 bg-[#16182B] border-[#2A2E4E] text-slate-200 hover:text-white hover:bg-[#1E213A] mt-2 font-semibold"
-                  >
-                    Connect with App Password
-                  </Button>
+                  <div className="space-y-2 mt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setStep('APP_PASSWORD_GUIDE')}
+                      className="w-full h-11 bg-[#16182B] border-[#2A2E4E] text-slate-200 hover:text-white hover:bg-[#1E213A] font-semibold cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <KeyRound className="w-4 h-4 text-amber-400" />
+                      <span>Connect with App Password</span>
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setStep('APP_PASSWORD_FORM')}
+                      className="w-full text-center text-xs text-slate-400 hover:text-emerald-400 py-1 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span>Already have code? Enter password directly</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
 
               </div>
@@ -627,13 +764,14 @@ export default function AddAccountWizard({
                     
                     {/* Copy Box */}
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0A0B14] border border-[#252948] font-mono text-xs text-slate-200">
-                      <span className="truncate pr-2 select-all text-emerald-400">{googleClientId}</span>
+                      <span className="truncate pr-2 select-all text-emerald-400 font-semibold">{activeClientId}</span>
                       <button
+                        type="button"
                         onClick={handleCopyClientId}
-                        className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                           copiedClientId 
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
-                            : 'bg-[#10b981]/15 hover:bg-[#2A2F5A] text-white border border-[#353B6E]'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm' 
+                            : 'bg-[#10b981]/15 hover:bg-[#10b981]/25 text-emerald-300 border border-[#10b981]/30'
                         }`}
                       >
                         {copiedClientId ? (
@@ -671,6 +809,20 @@ export default function AddAccountWizard({
                   <div>
                     <p className="text-xs font-bold text-white">Launch OAuth Authorization</p>
                     <p className="text-[11px] text-slate-400">Click the button below to initiate official Google OAuth authorization and link your mailbox.</p>
+                  </div>
+                </div>
+
+                {/* Google Unverified App Guidance (Explains the screen in user's screenshot) */}
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-1">
+                    <p className="font-bold text-amber-300">If Google displays &quot;Google hasn&apos;t verified this app&quot;:</p>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      This is standard during custom outreach app setup. Simply click <strong className="text-white">&quot;Advanced&quot;</strong> (or <em>Show Advanced</em>) at the bottom left, then click <strong className="text-white underline">&quot;Go to reachops.netlify.app (unsafe)&quot;</strong> to grant mailbox sending permission.
+                    </p>
+                    <p className="text-slate-400 text-[10px] pt-0.5">
+                      💡 <strong>Workspace Admins:</strong> Approving the Client ID above in Google Workspace Admin Console (Step 2 &amp; 3) as <em>&quot;Trusted&quot;</em> automatically bypasses this prompt for your entire organization.
+                    </p>
                   </div>
                 </div>
 
@@ -1044,7 +1196,167 @@ export default function AddAccountWizard({
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 4D: CUSTOM SMTP / IMAP FORM                                          */}
+          {/* STEP 4D: MICROSOFT 365 / OUTLOOK FORM                                    */}
+          {/* ========================================================================= */}
+          {step === 'MICROSOFT_FORM' && (
+            <form onSubmit={handleMicrosoftSubmit} className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
+              
+              {/* Header with Microsoft Logo */}
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                <div className="flex items-center gap-3">
+                  <MicrosoftIcon />
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Connect Your Microsoft 365 / Outlook Account</h3>
+                    <p className="text-xs text-slate-400">Exchange Online • Enterprise Outbound Configuration</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                  Microsoft Exchange
+                </span>
+              </div>
+
+              <div className="p-5 rounded-xl bg-[#121424] border border-white/[0.08] space-y-4">
+                
+                {/* Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-slate-400" /> First Name
+                    </Label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter your first name"
+                      value={msFirstName}
+                      onChange={(e) => setMsFirstName(e.target.value)}
+                      className="w-full h-10 px-3.5 bg-[#0C0D17] border border-white/[0.08] rounded-xl text-xs text-white focus:outline-none focus:border-blue-500 placeholder:text-slate-600"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-slate-400" /> Last Name
+                    </Label>
+                    <input
+                      type="text"
+                      placeholder="Enter your last name"
+                      value={msLastName}
+                      onChange={(e) => setMsLastName(e.target.value)}
+                      className="w-full h-10 px-3.5 bg-[#0C0D17] border border-white/[0.08] rounded-xl text-xs text-white focus:outline-none focus:border-blue-500 placeholder:text-slate-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Email Address */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-slate-400" /> Microsoft 365 / Outlook Email Address
+                  </Label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="alex@yourcompany.com or alex@outlook.com"
+                    value={msEmail}
+                    onChange={(e) => setMsEmail(e.target.value)}
+                    className="w-full h-10 px-3.5 bg-[#0C0D17] border border-white/[0.08] rounded-xl text-xs text-white focus:outline-none focus:border-blue-500 placeholder:text-slate-600 font-medium"
+                  />
+                </div>
+
+                {/* Password / App Password */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-slate-400" /> Microsoft Account Password or App Password
+                  </Label>
+                  <div className="relative">
+                    <input
+                      type={showMsPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Enter your Microsoft 365 or Outlook password"
+                      value={msPassword}
+                      onChange={(e) => setMsPassword(e.target.value)}
+                      className="w-full h-10 pl-3.5 pr-10 bg-[#0C0D17] border border-white/[0.08] rounded-xl text-xs text-white focus:outline-none focus:border-blue-500 placeholder:text-slate-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowMsPassword(!showMsPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                    >
+                      {showMsPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    If your organization enforces 2FA/MFA, create an App Password at <a href="https://account.live.com/proofs/AppPassword" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">Microsoft Security Proofs ↗</a>.
+                  </p>
+                </div>
+
+                {/* Daily limit & Warmup */}
+                <div className="pt-2 border-t border-white/[0.08] grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs font-semibold text-slate-300">Daily Send Limit</Label>
+                      <span className="text-xs font-bold text-blue-400">{msDailyLimit} / day</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="150"
+                      step="5"
+                      value={msDailyLimit}
+                      onChange={(e) => setMsDailyLimit(parseInt(e.target.value))}
+                      className="w-full h-1.5 bg-[#232742] rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0C0D17] border border-[#1E223D]">
+                    <div>
+                      <p className="text-xs font-bold text-white flex items-center gap-1">
+                        <Flame className="w-3.5 h-3.5 text-amber-400 fill-current" /> Auto Warmup Engine
+                      </p>
+                      <p className="text-[10px] text-slate-400">Automated deliverability warmup</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={msWarmup}
+                      onChange={(e) => setMsWarmup(e.target.checked)}
+                      className="rounded border-[#2E335C] bg-[#16182B] text-blue-400 focus:ring-0 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Bottom Action Buttons */}
+              <div className="pt-2 flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep('PROVIDER_SELECT')}
+                  className="bg-white/[0.04] border-[#252948] text-slate-300 hover:text-white h-10 px-4"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                </Button>
+
+                <Button
+                  type="submit"
+                  disabled={msSubmitting || !msEmail || !msPassword}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-7 h-10 shadow-lg shadow-blue-600/25 border-none transition-all flex items-center gap-2"
+                >
+                  {msSubmitting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : (
+                    <span>Connect Microsoft 365</span>
+                  )}
+                </Button>
+              </div>
+
+            </form>
+          )}
+
+          {/* ========================================================================= */}
+          {/* STEP 4E: CUSTOM SMTP / IMAP FORM                                          */}
           {/* ========================================================================= */}
           {step === 'SMTP_FORM' && (
             <form onSubmit={handleSmtpSubmit} className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
@@ -1256,8 +1568,8 @@ export default function AddAccountWizard({
                       Back
                     </Button>
                     <Button
-                      onClick={() => setTurnkeySubmitted(true)}
-                      className="bg-[#10b981] hover:bg-[#8889FF] text-[#0A0B14] font-bold px-6 h-10 shadow-lg shadow-emerald-500/20 border-none"
+                      onClick={handleProvisionTurnkey}
+                      className="bg-[#10b981] hover:bg-[#8889FF] text-[#0A0B14] font-bold px-6 h-10 shadow-lg shadow-emerald-500/20 border-none cursor-pointer"
                     >
                       Instant Provision ({turnkeyCount} Accounts)
                     </Button>
@@ -1271,52 +1583,235 @@ export default function AddAccountWizard({
 
       </div>
 
-      {/* Tutorial Video / Walkthrough Popup Dialog */}
+      {/* Real Responsive Video Player Modal */}
       {showTutorialModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
-          <div className="bg-[#171717]/95 border border-white/[0.12] rounded-3xl backdrop-blur-2xl shadow-[0_24px_70px_rgba(0,0,0,0.8)] shadow-2xl max-w-lg w-full overflow-hidden p-6 space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Play className="w-4 h-4 text-amber-400 fill-current" />
-                How to Generate a Google App Password
-              </h3>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200">
+          <div className="bg-[#171717] border border-white/[0.14] rounded-3xl backdrop-blur-2xl shadow-[0_24px_80px_rgba(0,0,0,0.9)] max-w-2xl w-full overflow-hidden flex flex-col max-h-[94vh] animate-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    How to Generate a Google App Password
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      HD Video Tutorial
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">Step-by-step video guide for Gmail &amp; Google Workspace (1:30 min)</p>
+                </div>
+              </div>
               <button 
                 onClick={() => setShowTutorialModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                title="Close tutorial"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-              <p>
-                Google created <strong>App Passwords</strong> so you can safely authenticate external apps without sharing your real primary password.
-              </p>
+            {/* Modal Content Scrollable Area */}
+            <div className="p-5 space-y-4 overflow-y-auto">
               
-              <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-2">
-                <p className="font-semibold text-white">3 Quick Steps:</p>
-                <ol className="list-decimal list-inside space-y-1.5 text-slate-400">
-                  <li>Visit <span className="text-emerald-400 font-mono">myaccount.google.com/apppasswords</span></li>
-                  <li>Sign in with your Google email &amp; verify your 2FA prompt.</li>
-                  <li>In the <strong>&quot;App name&quot;</strong> field, type <span className="text-white font-semibold">&quot;ReachOps&quot;</span> and click <strong>Create</strong>.</li>
-                  <li>Google displays a yellow box with 16 letters: <span className="font-mono text-amber-300 bg-amber-950/40 px-1.5 py-0.5 rounded">xxxx xxxx xxxx xxxx</span>. Copy it and paste into ReachOps.</li>
-                </ol>
+              {/* Tabs: Video Player vs Quick Steps */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+                  <button
+                    type="button"
+                    onClick={() => setVideoTab('video')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      videoTab === 'video'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    Video Tutorial
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoTab('steps')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      videoTab === 'steps'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    Step-by-Step Guide
+                  </button>
+                </div>
+
+                <a
+                  href="https://myaccount.google.com/apppasswords"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-semibold text-emerald-400 hover:underline inline-flex items-center gap-1"
+                >
+                  Direct Google Shortcut <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               </div>
 
-              <div className="p-3 rounded-lg bg-blue-950/20 border border-blue-500/20 text-[11px] text-blue-300 flex items-start gap-2">
-                <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Tip: Don&apos;t worry about spaces. ReachOps automatically formats the 16 characters for you.</span>
+              {/* VIDEO TAB */}
+              {videoTab === 'video' && (
+                <div className="space-y-3">
+                  {/* Real 16:9 Responsive Video Player */}
+                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/[0.12] shadow-2xl">
+                    <iframe
+                      key={videoStartSec}
+                      src={`https://www.youtube-nocookie.com/embed/j7s3o8v0G_M?autoplay=1&rel=0&modestbranding=1&start=${videoStartSec}`}
+                      title="Google App Password Generation Tutorial"
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+
+                  {/* Video Chapter Timestamps */}
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jump to Chapter:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setVideoStartSec(0)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          videoStartSec === 0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-white/[0.05] text-slate-300 hover:bg-white/[0.09]'
+                        }`}
+                      >
+                        0:00 • Intro &amp; Google Account
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoStartSec(20)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          videoStartSec === 20 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-white/[0.05] text-slate-300 hover:bg-white/[0.09]'
+                        }`}
+                      >
+                        0:20 • Enable 2-Step Verification
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoStartSec(45)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          videoStartSec === 45 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-white/[0.05] text-slate-300 hover:bg-white/[0.09]'
+                        }`}
+                      >
+                        0:45 • App Passwords Menu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoStartSec(65)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          videoStartSec === 65 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-white/[0.05] text-slate-300 hover:bg-white/[0.09]'
+                        }`}
+                      >
+                        1:05 • Type &quot;ReachOps&quot; &amp; Create
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoStartSec(80)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          videoStartSec === 80 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-white/[0.05] text-slate-300 hover:bg-white/[0.09]'
+                        }`}
+                      >
+                        1:20 • Copy 16-Character Code
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEPS TAB */}
+              {videoTab === 'steps' && (
+                <div className="space-y-3 text-xs leading-relaxed">
+                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-3">
+                    <p className="font-semibold text-white">Follow these 3 quick steps in Google:</p>
+                    <ol className="space-y-2.5 text-slate-300">
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center shrink-0 text-[11px] mt-0.5">1</span>
+                        <span>
+                          Open <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline font-semibold">Google Security Settings ↗</a> and make sure <strong>2-Step Verification</strong> is switched <strong>ON</strong>.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center shrink-0 text-[11px] mt-0.5">2</span>
+                        <span>
+                          Navigate directly to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline font-semibold font-mono">myaccount.google.com/apppasswords ↗</a>.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center shrink-0 text-[11px] mt-0.5">3</span>
+                        <span>
+                          Under &quot;App name&quot;, enter <strong className="text-white">&quot;ReachOps&quot;</strong> and click <strong>Create</strong>. Google generates a 16-character code (e.g. <span className="font-mono text-amber-300 bg-amber-950/40 px-1.5 py-0.5 rounded">abcd efgh ijkl mnop</span>).
+                        </span>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300 flex items-start gap-2">
+                    <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>Tip: Spaces are automatically handled! You can paste the code directly with or without spaces.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Action Links Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                <a
+                  href="https://myaccount.google.com/apppasswords"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-slate-200 hover:text-white flex items-center justify-between transition-colors group"
+                >
+                  <span className="truncate">Open App Passwords</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+                </a>
+                <a
+                  href="https://myaccount.google.com/security"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-slate-200 hover:text-white flex items-center justify-between transition-colors group"
+                >
+                  <span className="truncate">Google 2FA Settings</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+                </a>
+                <a
+                  href="https://www.youtube.com/watch?v=j7s3o8v0G_M"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-slate-200 hover:text-white flex items-center justify-between transition-colors group"
+                >
+                  <span className="truncate">Open in YouTube</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-red-400 group-hover:translate-x-0.5 transition-transform" />
+                </a>
               </div>
+
             </div>
 
-            <div className="pt-2 flex justify-end">
+            {/* Bottom Actions */}
+            <div className="px-5 py-3.5 border-t border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
               <Button
+                variant="outline"
                 onClick={() => setShowTutorialModal(false)}
-                className="bg-[#10b981] hover:bg-[#8889FF] text-[#0A0B14] font-bold text-xs h-9 px-5"
+                className="bg-white/[0.04] border-white/[0.09] text-slate-300 hover:text-white text-xs h-9 px-4 rounded-xl"
               >
-                Got It
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowTutorialModal(false);
+                  setStep('APP_PASSWORD_FORM');
+                }}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 px-5 rounded-xl shadow-lg shadow-blue-600/25 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>I Have My Code: Enter Password</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </div>
+
           </div>
         </div>
       )}

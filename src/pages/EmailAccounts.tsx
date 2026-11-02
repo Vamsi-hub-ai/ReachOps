@@ -35,6 +35,8 @@ export default function EmailAccounts() {
     replyRate: 30
   });
 
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
   const fetchAccounts = async () => {
     setLoading(true);
     try {
@@ -609,13 +611,46 @@ export default function EmailAccounts() {
         )
       )}
 
+      {/* Floating Real-time Success Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-[#171717]/95 border border-emerald-500/30 text-white shadow-2xl backdrop-blur-xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-white">{toastMsg}</p>
+            <p className="text-[10px] text-slate-400">Connected with live deliverability telemetry</p>
+          </div>
+          <button 
+            onClick={() => setToastMsg(null)}
+            className="p-1 rounded-lg text-slate-400 hover:text-white ml-2"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* ADD ACCOUNT WIZARD MODAL */}
       <AddAccountWizard
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         onAccountAdded={(newAccount) => {
-          const updated = [newAccount, ...accounts];
-          setAccounts(updated);
+          setAccounts(prev => {
+            const exists = prev.some(a => a.id === newAccount.id || a.email?.toLowerCase() === newAccount.email?.toLowerCase());
+            let updated;
+            if (exists) {
+              updated = prev.map(a => (a.id === newAccount.id || a.email?.toLowerCase() === newAccount.email?.toLowerCase()) ? { ...a, ...newAccount } : a);
+            } else {
+              updated = [newAccount, ...prev];
+            }
+            try {
+              localStorage.setItem('email_accounts', JSON.stringify(updated));
+            } catch (_) {}
+            return updated;
+          });
+          setToastMsg(`Mailbox ${newAccount.email} connected successfully! Automated warmup initialized.`);
+          setTimeout(() => setToastMsg(null), 4000);
+          fetchAccounts();
         }}
       />
 

@@ -13,10 +13,15 @@ export const handler: Handler = async (event) => {
       return unauthorizedResponse('Unauthorized');
     }
 
+    const host = event.headers['x-forwarded-host'] || event.headers.host;
+    const proto = event.headers['x-forwarded-proto'] || 'https';
+    const defaultRedirectUri = host ? `${proto}://${host}/api/auth/google/callback` : 'https://reachops.netlify.app/api/auth/google/callback';
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || defaultRedirectUri;
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      redirectUri
     );
 
     const scopes = [

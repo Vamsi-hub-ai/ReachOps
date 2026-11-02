@@ -11,11 +11,17 @@ export const handler: Handler = async (event) => {
   try {
     const { code, state, error } = event.queryStringParameters || {};
 
+    const host = event.headers['x-forwarded-host'] || event.headers.host;
+    const proto = event.headers['x-forwarded-proto'] || 'https';
+    const baseUrl = host ? `${proto}://${host}` : (process.env.APP_URL || 'https://reachops.netlify.app');
+    const defaultRedirectUri = host ? `${proto}://${host}/api/auth/google/callback` : 'https://reachops.netlify.app/api/auth/google/callback';
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || defaultRedirectUri;
+
     if (error) {
       console.error('Google OAuth error from query:', error);
       return {
         statusCode: 302,
-        headers: { Location: `${process.env.APP_URL}/email-accounts?error=${error}` },
+        headers: { Location: `${baseUrl}/email-accounts?error=${error}` },
       };
     }
 
@@ -31,7 +37,7 @@ export const handler: Handler = async (event) => {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      redirectUri
     );
 
     const { tokens } = await oauth2Client.getToken(code);
@@ -53,74 +59,53 @@ export const handler: Handler = async (event) => {
     const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null;
     const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
 
-    // Upsert the email account
-    await prisma.emailAccount.upsert({
-      where: { 
-        id: 'mock-uuid-to-force-create', // prisma upsert needs a unique key, but workspaceId+email isn't marked unique in schema
-      },
-      create: {
-        workspaceId,
-        provider: 'GMAIL',
-        email,
-        displayName,
-        providerAccountId,
-        accessTokenEncrypted: encryptedAccessToken,
-        refreshTokenEncrypted: encryptedRefreshToken || '', // Schema expects string? Wait schema says String? Yes, optional
-        tokenExpiresAt: expiresAt,
-        status: 'ACTIVE',
-      },
-      update: {
-        accessTokenEncrypted: encryptedAccessToken,
-        ...(encryptedRefreshToken && { refreshTokenEncrypted: encryptedRefreshToken }),
-        tokenExpiresAt: expiresAt,
-        status: 'ACTIVE',
-      }
-    }).catch(async (err) => {
-       // Since we don't have a unique constraint on email+workspaceId in the schema to use for upsert,
-       // we will find first and update, or create.
-       const existing = await prisma.emailAccount.findFirst({
-         where: { workspaceId, email, provider: 'GMAIL' }
-       });
-       
-       if (existing) {
-         await prisma.emailAccount.update({
-           where: { id: existing.id },
-           data: {
-             accessTokenEncrypted: encryptedAccessToken,
-             ...(encryptedRefreshToken && { refreshTokenEncrypted: encryptedRefreshToken }),
-             tokenExpiresAt: expiresAt,
-             status: 'ACTIVE',
-           }
-         });
-       } else {
-         await prisma.emailAccount.create({
-           data: {
-             workspaceId,
-             provider: 'GMAIL',
-             email,
-             displayName,
-             providerAccountId,
-             accessTokenEncrypted: encryptedAccessToken,
-             refreshTokenEncrypted: encryptedRefreshToken,
-             tokenExpiresAt: expiresAt,
-             status: 'ACTIVE',
-           }
-         });
-       }
+    // Find first and update or create email account for this workspace
+    const existing = await prisma.emailAccount.findFirst({
+      where: { workspaceId, email, provider: 'GMAIL' }
     });
+    
+    if (existing) {
+      await prisma.emailAccount.update({
+        where: { id: existing.id },
+        data: {
+          accessTokenEncrypted: encryptedAccessToken,
+          ...(encryptedRefreshToken && { refreshTokenEncrypted: encryptedRefreshToken }),
+          tokenExpiresAt: expiresAt,
+          displayName: displayName || existing.displayName,
+          status: 'ACTIVE',
+        }
+      });
+    } else {
+      await prisma.emailAccount.create({
+        data: {
+          workspaceId,
+          provider: 'GMAIL',
+          email,
+          displayName,
+          providerAccountId,
+          accessTokenEncrypted: encryptedAccessToken,
+          refreshTokenEncrypted: encryptedRefreshToken,
+          tokenExpiresAt: expiresAt,
+          status: 'ACTIVE',
+        }
+      });
+    }
 
     return {
       statusCode: 302,
       headers: {
-        Location: `${process.env.APP_URL}/email-accounts?success=true`,
+        Location: `${baseUrl}/email-accounts?success=true`,
       },
     };
   } catch (error: any) {
     console.error('Google OAuth Callback Error:', error);
+    const host = event.headers['x-forwarded-host'] || event.headers.host;
+    const proto = event.headers['x-forwarded-proto'] || 'https';
+    const fallbackBaseUrl = host ? `${proto}://${host}` : (process.env.APP_URL || 'https://reachops.netlify.app');
     return {
       statusCode: 302,
       headers: {
-        Location: `${process.env.APP_URL}/email-accounts?error=integration_failed`,
+        Location: `${fallbackBaseUrl}/email-accounts?error=integration_failed`,
       },
     };
   }
