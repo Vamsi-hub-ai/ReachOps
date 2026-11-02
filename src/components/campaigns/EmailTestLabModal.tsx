@@ -201,38 +201,61 @@ export default function EmailTestLabModal({
 
   // Fetch real connected mailboxes on mount
   useEffect(() => {
+    // 1. Initialise from localStorage cache first
+    let localMailboxes: ConnectedMailbox[] = [];
     try {
       const cached = localStorage.getItem('email_accounts');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const mapped = parsed.map((a: any) => ({
-            id: a.id,
+          localMailboxes = parsed.map((a: any) => ({
+            id: a.id || a.email,
             email: a.email,
             displayName: a.displayName || a.email.split('@')[0],
             healthScore: a.healthScore || 99,
             provider: a.provider === 'GMAIL' ? 'Google Workspace' : a.provider === 'MICROSOFT' ? 'Microsoft 365' : a.provider || 'Custom Mailbox',
           }));
-          setSenderAccounts(mapped);
-          setSelectedSenderId(mapped[0].id);
         }
       }
     } catch (_) {}
 
+    // Ensure Vamsi is always in the list
+    if (!localMailboxes.some(m => (m.email || '').toLowerCase() === 'vamsipallela31@gmail.com')) {
+      localMailboxes.unshift({
+        id: 'acc-vamsi',
+        email: 'vamsipallela31@gmail.com',
+        displayName: 'Vamsi Pallela',
+        healthScore: 99,
+        provider: 'Google Workspace',
+      });
+    }
+
+    setSenderAccounts(localMailboxes);
+    setSelectedSenderId(localMailboxes[0].id);
+
+    // 2. Fetch from API and MERGE (never wipe out local accounts!)
     fetch('/api/email-accounts')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         const list = Array.isArray(data) ? data : (data?.accounts || []);
         if (list.length > 0) {
-          const mapped = list.map((a: any) => ({
-            id: a.id,
-            email: a.email,
-            displayName: a.displayName || a.email.split('@')[0],
-            healthScore: a.healthScore || 99,
-            provider: a.provider === 'GMAIL' ? 'Google Workspace' : a.provider === 'MICROSOFT' ? 'Microsoft 365' : a.provider || 'Custom Mailbox',
-          }));
-          setSenderAccounts(mapped);
-          setSelectedSenderId(mapped[0].id);
+          setSenderAccounts(prev => {
+            const merged = [...prev];
+            const existingEmails = new Set(merged.map(m => (m.email || '').toLowerCase()));
+            for (const a of list) {
+              if (a.email && !existingEmails.has(a.email.toLowerCase())) {
+                merged.push({
+                  id: a.id || a.email,
+                  email: a.email,
+                  displayName: a.displayName || a.email.split('@')[0],
+                  healthScore: a.healthScore || 99,
+                  provider: a.provider === 'GMAIL' ? 'Google Workspace' : a.provider === 'MICROSOFT' ? 'Microsoft 365' : a.provider || 'Custom Mailbox',
+                });
+                existingEmails.add(a.email.toLowerCase());
+              }
+            }
+            return merged;
+          });
         }
       })
       .catch(() => {});
@@ -420,6 +443,8 @@ export default function EmailTestLabModal({
           campaignId,
           stepNumber: currentStep.stepNumber,
           emailAccountId: selectedSender?.id,
+          senderEmail: selectedSender?.email,
+          senderName: selectedSender?.displayName,
           sendTo: sendToEmail,
           subject: renderedSubject,
           body: renderedBody,

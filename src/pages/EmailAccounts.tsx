@@ -695,7 +695,6 @@ export default function EmailAccounts() {
           });
           setToastMsg(`Mailbox ${newAccount.email} connected successfully! Automated warmup initialized.`);
           setTimeout(() => setToastMsg(null), 4000);
-          fetchAccounts();
         }}
       />
 
