@@ -29,6 +29,7 @@ import SuppressionList from './pages/SuppressionList';
 import EmailOutreachAutomation from './pages/seo/EmailOutreachAutomation';
 import GoogleSheetsAutomation from './pages/seo/GoogleSheetsAutomation';
 import DeliverabilityMonitoring from './pages/seo/DeliverabilityMonitoring';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
   return (
@@ -41,7 +42,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         
-        <Route element={<DashboardLayout />}>
+        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/campaigns" element={<CampaignList />} />
           <Route path="/campaigns/new" element={<CampaignWizard />} />

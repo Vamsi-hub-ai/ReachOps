@@ -10,7 +10,9 @@ export const handler: Handler = async (event) => {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     path: '/',
+    sameSite: 'lax',
     maxAge: -1, // Expire immediately
+    expires: new Date(0),
   });
 
   return {
@@ -18,6 +20,8 @@ export const handler: Handler = async (event) => {
     headers: {
       'Set-Cookie': sessionCookie,
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+      'Pragma': 'no-cache',
     },
     body: JSON.stringify({ success: true }),
   };

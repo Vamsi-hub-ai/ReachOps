@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,33 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // If already authenticated, redirect to /dashboard.
+  // Trap browser Back button while on login page so users cannot back-traverse into expired sessions.
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem('user');
+      if (u) {
+        const parsed = JSON.parse(u);
+        if (parsed?.id || parsed?.email) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+      }
+    } catch {}
+
+    // Trap back button on login page
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

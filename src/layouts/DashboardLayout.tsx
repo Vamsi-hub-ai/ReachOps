@@ -41,40 +41,62 @@ export default function DashboardLayout() {
   const location = useLocation();
 
   useEffect(() => {
-    fetch('/api/auth/me')
+    let active = true;
+    fetch('/api/auth/me', { credentials: 'include' })
       .then((res) => {
         if (!res.ok) {
-          const saved = localStorage.getItem('user');
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved);
-              if (parsed?.email === 'vamsipallela31@gmail.com' || parsed?.email === 'demo@reachops.com') {
-                return null;
-              }
-            } catch {}
-          }
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          localStorage.removeItem('email_accounts');
+          localStorage.removeItem('campaigns');
+          window.location.replace('/login');
           return null;
         }
         return res.json();
       })
       .then((data) => {
-        if (data && data.id) {
+        if (active && data && data.id) {
           setCurrentUser(data);
           localStorage.setItem('user', JSON.stringify(data));
         }
       })
       .catch(() => {});
-  }, []);
+
+    return () => { active = false; };
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include'
+      });
     } catch {}
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    localStorage.removeItem('email_accounts');
+    localStorage.removeItem('campaigns');
+    localStorage.removeItem('user_profile_avatar');
+    sessionStorage.clear();
+    window.dispatchEvent(new Event('user-updated'));
+    // Use window.location.replace so the authenticated route is removed from browser history
+    window.location.replace('/login');
   };
+
+  // BFCache defense: if browser Back button is pressed after logout, redirect immediately
+  useEffect(() => {
+    const handleRevalidateAuth = () => {
+      const saved = localStorage.getItem('user');
+      if (!saved) {
+        window.location.replace('/login');
+      }
+    };
+
+    window.addEventListener('pageshow', handleRevalidateAuth);
+    window.addEventListener('popstate', handleRevalidateAuth);
+    return () => {
+      window.removeEventListener('pageshow', handleRevalidateAuth);
+      window.removeEventListener('popstate', handleRevalidateAuth);
+    };
+  }, []);
 
   useEffect(() => {
     const handleUserUpdate = () => {

@@ -26,7 +26,11 @@ export function isWorkspaceDemo(workspaceId: string, workspaceName?: string | nu
 export function unauthorizedResponse(message: string = 'Unauthorized') {
   return {
     statusCode: 401,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+    },
     body: JSON.stringify({ error: message }),
   };
 }
@@ -34,7 +38,11 @@ export function unauthorizedResponse(message: string = 'Unauthorized') {
 export function forbiddenResponse(message: string = 'Forbidden') {
   return {
     statusCode: 403,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+    },
     body: JSON.stringify({ error: message }),
   };
 }

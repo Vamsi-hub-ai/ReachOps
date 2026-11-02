@@ -2,6 +2,12 @@ import { Handler } from '@netlify/functions';
 import prisma from '../lib/prisma';
 import { getAuthContext, unauthorizedResponse } from '../lib/auth';
 
+const NO_CACHE_HEADERS = {
+  'Content-Type': 'application/json',
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+  'Pragma': 'no-cache',
+};
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'GET') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -36,7 +42,7 @@ export const handler: Handler = async (event) => {
     if (!user && (auth.userId === 'ab8358c3-b078-467f-8245-79f179bdaf29' || auth.user?.email === 'vamsipallela31@gmail.com')) {
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: NO_CACHE_HEADERS,
         body: JSON.stringify({
           id: 'ab8358c3-b078-467f-8245-79f179bdaf29',
           name: 'Vamsi Pallela',
@@ -64,7 +70,7 @@ export const handler: Handler = async (event) => {
     if (!user && (auth.isDemo || auth.userId === 'demo-user-id')) {
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: NO_CACHE_HEADERS,
         body: JSON.stringify({
           id: 'demo-user-id',
           name: 'Demo User',
@@ -94,7 +100,7 @@ export const handler: Handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: NO_CACHE_HEADERS,
       body: JSON.stringify({
         ...user,
         isDemo: auth.isDemo,
@@ -105,7 +111,7 @@ export const handler: Handler = async (event) => {
     console.error('Auth Me Error:', error);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: NO_CACHE_HEADERS,
       body: JSON.stringify({ error: 'Internal Server Error' }),
     };
   }
