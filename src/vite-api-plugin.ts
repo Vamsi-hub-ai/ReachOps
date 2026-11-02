@@ -18,9 +18,9 @@ export function netlifyFunctionsDevPlugin(): Plugin {
           // Route mapping
           let funcName: string | null = null;
           
-          if (pathname === '/api/auth/google/callback') {
+          if (pathname === '/api/auth/google/callback' || pathname === '/api/auth-google-callback' || pathname === '/api/auth/google-callback') {
             funcName = 'auth-google-callback';
-          } else if (pathname === '/api/auth/google/url' || pathname === '/api/auth/google-url') {
+          } else if (pathname === '/api/auth/google/url' || pathname === '/api/auth/google-url' || pathname === '/api/auth-google-url') {
             funcName = 'auth-google-url';
           } else if (pathname === '/api/auth/login') {
             funcName = 'auth-login';

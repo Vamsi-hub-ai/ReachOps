@@ -18,7 +18,27 @@
   status = 200
 
 [[redirects]]
+  from = "/api/auth-google-callback"
+  to = "/.netlify/functions/auth-google-callback"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/google-callback"
+  to = "/.netlify/functions/auth-google-callback"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/google/url"
+  to = "/.netlify/functions/auth-google-url"
+  status = 200
+
+[[redirects]]
   from = "/api/auth/google-url"
+  to = "/.netlify/functions/auth-google-url"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth-google-url"
   to = "/.netlify/functions/auth-google-url"
   status = 200
 

@@ -34,10 +34,11 @@ export default function AddAccountWizard({
   onAccountAdded,
   googleClientId,
 }: AddAccountWizardProps) {
-  const activeClientId = googleClientId || import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+  const activeClientId = (googleClientId || import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID || '').trim() || DEFAULT_GOOGLE_CLIENT_ID;
   const [step, setStep] = useState<WizardStep>('CATEGORY_SELECT');
   const [copiedClientId, setCopiedClientId] = useState(false);
   const [loadingOAuth, setLoadingOAuth] = useState(false);
+  const [oauthErrorNotice, setOauthErrorNotice] = useState<string | null>(null);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [videoStartSec, setVideoStartSec] = useState(0);
   const [videoTab, setVideoTab] = useState<'video' | 'steps'>('video');
@@ -94,18 +95,40 @@ export default function AddAccountWizard({
 
   const handleLaunchGoogleOAuth = async () => {
     setLoadingOAuth(true);
+    setOauthErrorNotice(null);
     try {
-      const res = await fetch('/api/auth/google-url');
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert(data.error || 'Failed to generate Google authorization URL');
-        setLoadingOAuth(false);
+      // Resilient endpoint resolution: Try /api/auth/google/url, then fallback to /api/auth/google-url or /api/auth-google-url
+      let res: Response | null = await fetch('/api/auth/google/url').catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch('/api/auth/google-url').catch(() => null);
       }
-    } catch (err) {
-      console.error(err);
-      alert('Network error connecting to Google service.');
+      if (!res || !res.ok) {
+        res = await fetch('/api/auth-google-url').catch(() => null);
+      }
+
+      if (res && res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data && data.url) {
+          window.location.href = data.url;
+          return;
+        }
+      }
+
+      // If we got an error response from backend
+      let msg = 'Failed to generate Google authorization URL.';
+      if (res) {
+        try {
+          const errData = await res.json();
+          if (errData?.message) msg = errData.message;
+          else if (errData?.error) msg = errData.error;
+        } catch (_) {}
+      }
+
+      setOauthErrorNotice(msg);
+      setLoadingOAuth(false);
+    } catch (err: any) {
+      console.error('Google OAuth launch error:', err);
+      setOauthErrorNotice('Network connection error when reaching Google OAuth service. Please retry.');
       setLoadingOAuth(false);
     }
   };
@@ -720,7 +743,19 @@ export default function AddAccountWizard({
                     </ul>
                   </div>
 
-                  <div className="space-y-2 mt-2">
+                  <div className="space-y-2.5 mt-2">
+                    {oauthErrorNotice && (
+                      <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-300 flex items-start gap-2 animate-in fade-in">
+                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-semibold">{oauthErrorNotice}</p>
+                          <p className="text-[11px] text-slate-400">
+                            You can also use <strong>App Password</strong> on the right for 100% real-time sending with zero OAuth setup.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     <Button
                       onClick={handleLaunchGoogleOAuth}
                       disabled={loadingOAuth}
@@ -729,6 +764,12 @@ export default function AddAccountWizard({
                       <GoogleGIcon />
                       {loadingOAuth ? 'Connecting to Google...' : 'Connect with OAuth'}
                     </Button>
+
+                    <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300 flex items-start gap-2">
+                      <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                      <span>If Google displays &quot;unverified app&quot;, click <strong>Advanced</strong> → <strong>Go to reachops.netlify.app (unsafe)</strong> to proceed.</span>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => setStep('GOOGLE_OAUTH_GUIDE')}
@@ -1136,6 +1177,7 @@ export default function AddAccountWizard({
                     <input
                       type="text"
                       required
+                      autoComplete="off"
                       placeholder="Enter your first name"
                       value={appFirstName}
                       onChange={(e) => setAppFirstName(e.target.value)}
@@ -1147,6 +1189,7 @@ export default function AddAccountWizard({
                     <Label className="text-xs font-semibold text-slate-200">Last Name</Label>
                     <input
                       type="text"
+                      autoComplete="off"
                       placeholder="Enter your last name"
                       value={appLastName}
                       onChange={(e) => setAppLastName(e.target.value)}
@@ -1163,6 +1206,7 @@ export default function AddAccountWizard({
                   <input
                     type="email"
                     required
+                    autoComplete="off"
                     placeholder="Enter your email address (e.g. alex@gmail.com)"
                     value={appEmail}
                     onChange={(e) => setAppEmail(e.target.value)}
@@ -1189,6 +1233,7 @@ export default function AddAccountWizard({
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
+                      autoComplete="new-password"
                       placeholder="Enter your 16 character app password without spaces"
                       value={appPassword}
                       onChange={(e) => setAppPassword(e.target.value)}
@@ -1315,6 +1360,7 @@ export default function AddAccountWizard({
                     <input
                       type="text"
                       required
+                      autoComplete="off"
                       placeholder="Enter your first name"
                       value={msFirstName}
                       onChange={(e) => setMsFirstName(e.target.value)}
@@ -1328,6 +1374,7 @@ export default function AddAccountWizard({
                     </Label>
                     <input
                       type="text"
+                      autoComplete="off"
                       placeholder="Enter your last name"
                       value={msLastName}
                       onChange={(e) => setMsLastName(e.target.value)}
@@ -1344,6 +1391,7 @@ export default function AddAccountWizard({
                   <input
                     type="email"
                     required
+                    autoComplete="off"
                     placeholder="alex@yourcompany.com or alex@outlook.com"
                     value={msEmail}
                     onChange={(e) => setMsEmail(e.target.value)}
@@ -1360,6 +1408,7 @@ export default function AddAccountWizard({
                     <input
                       type={showMsPassword ? 'text' : 'password'}
                       required
+                      autoComplete="new-password"
                       placeholder="Enter your Microsoft 365 or Outlook password"
                       value={msPassword}
                       onChange={(e) => setMsPassword(e.target.value)}
@@ -1448,13 +1497,14 @@ export default function AddAccountWizard({
           {/* STEP 4E: CUSTOM SMTP / IMAP FORM                                          */}
           {/* ========================================================================= */}
           {step === 'SMTP_FORM' && (
-            <form onSubmit={handleSmtpSubmit} className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
+            <form onSubmit={handleSmtpSubmit} autoComplete="off" className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-200">Email Address</Label>
                   <input
                     type="email"
                     required
+                    autoComplete="off"
                     placeholder="sales@outreachdomain.com"
                     value={smtpForm.email}
                     onChange={(e) => setSmtpForm({ ...smtpForm, email: e.target.value })}
@@ -1465,6 +1515,7 @@ export default function AddAccountWizard({
                   <Label className="text-xs font-semibold text-slate-200">Display Name</Label>
                   <input
                     type="text"
+                    autoComplete="off"
                     placeholder="Alex Morgan"
                     value={smtpForm.displayName}
                     onChange={(e) => setSmtpForm({ ...smtpForm, displayName: e.target.value })}
@@ -1484,6 +1535,7 @@ export default function AddAccountWizard({
                     <input
                       type="text"
                       required
+                      autoComplete="off"
                       placeholder="smtp.mailgun.org"
                       value={smtpForm.smtpHost}
                       onChange={(e) => setSmtpForm({ ...smtpForm, smtpHost: e.target.value })}
@@ -1494,6 +1546,7 @@ export default function AddAccountWizard({
                     <Label className="text-[11px] text-slate-400">Port</Label>
                     <input
                       type="text"
+                      autoComplete="off"
                       placeholder="587"
                       value={smtpForm.smtpPort}
                       onChange={(e) => setSmtpForm({ ...smtpForm, smtpPort: e.target.value })}
@@ -1506,6 +1559,7 @@ export default function AddAccountWizard({
                     <Label className="text-[11px] text-slate-400">SMTP Username</Label>
                     <input
                       type="text"
+                      autoComplete="off"
                       placeholder="smtp-user"
                       value={smtpForm.smtpUser}
                       onChange={(e) => setSmtpForm({ ...smtpForm, smtpUser: e.target.value })}
@@ -1516,6 +1570,7 @@ export default function AddAccountWizard({
                     <Label className="text-[11px] text-slate-400">SMTP Password</Label>
                     <input
                       type="password"
+                      autoComplete="new-password"
                       placeholder="••••••••••••"
                       value={smtpForm.smtpPass}
                       onChange={(e) => setSmtpForm({ ...smtpForm, smtpPass: e.target.value })}
@@ -1535,6 +1590,7 @@ export default function AddAccountWizard({
                     <Label className="text-[11px] text-slate-400">IMAP Host</Label>
                     <input
                       type="text"
+                      autoComplete="off"
                       placeholder="imap.mailgun.org"
                       value={smtpForm.imapHost}
                       onChange={(e) => setSmtpForm({ ...smtpForm, imapHost: e.target.value })}
@@ -1545,6 +1601,7 @@ export default function AddAccountWizard({
                     <Label className="text-[11px] text-slate-400">Port</Label>
                     <input
                       type="text"
+                      autoComplete="off"
                       placeholder="993"
                       value={smtpForm.imapPort}
                       onChange={(e) => setSmtpForm({ ...smtpForm, imapPort: e.target.value })}
