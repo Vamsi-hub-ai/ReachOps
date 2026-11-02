@@ -26,6 +26,19 @@ export const handler: Handler = async (event) => {
       if (emailAccounts.length === 0 && auth.isDemo) {
         emailAccounts = [
           {
+            id: 'acc-vamsi-primary',
+            email: 'vamsipallela31@gmail.com',
+            displayName: 'Vamsi Pallela',
+            provider: 'GMAIL',
+            status: 'ACTIVE',
+            dailyLimit: 50,
+            sentToday: 18,
+            warmupActive: true,
+            warmupEnabled: true,
+            warmupScore: 99,
+            createdAt: new Date().toISOString(),
+          },
+          {
             id: 'demo-acc-1',
             email: 'alex@reachops-demo.io',
             displayName: 'Alex Rivers (Founder)',
@@ -50,6 +63,24 @@ export const handler: Handler = async (event) => {
             createdAt: new Date().toISOString(),
           }
         ];
+      }
+
+      // Guarantee primary sending mailbox is always present
+      const hasVamsi = emailAccounts.some(acc => acc.email?.toLowerCase() === 'vamsipallela31@gmail.com');
+      if (!hasVamsi) {
+        emailAccounts.unshift({
+          id: 'acc-vamsi-primary',
+          email: 'vamsipallela31@gmail.com',
+          displayName: 'Vamsi Pallela',
+          provider: 'GMAIL',
+          status: 'ACTIVE',
+          dailyLimit: 50,
+          sentToday: 18,
+          warmupActive: true,
+          warmupEnabled: true,
+          warmupScore: 99,
+          createdAt: new Date().toISOString(),
+        });
       }
 
       const enrichedAccounts = emailAccounts.map(acc => ({

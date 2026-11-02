@@ -38,22 +38,55 @@ export default function CampaignAccounts() {
     fetch('/api/email-accounts')
       .then(res => res.json())
       .then(data => {
+        let list: any[] = [];
         if (Array.isArray(data)) {
-          if (data.length > 0) {
-            setAccounts(data.map((acc, idx) => ({
-              id: acc.id || String(idx + 1),
-              email: acc.email,
-              provider: acc.provider === 'GMAIL' ? 'Google Workspace' : acc.provider === 'MICROSOFT' ? 'Microsoft 365' : acc.provider,
-              status: acc.status === 'ACTIVE' ? 'Connected' : 'Paused',
-              globalLimit: acc.dailyLimit || 150,
-              usedToday: acc.sentToday || 0,
-              assignedToCampaign: true,
-            })));
-          } else if (isDemo) {
-            setAccounts(mockGlobalAccounts);
-          } else {
-            setAccounts([]);
+          list = data;
+        } else if (Array.isArray(data?.accounts)) {
+          list = data.accounts;
+        }
+
+        try {
+          const cached = localStorage.getItem('email_accounts');
+          if (cached) {
+            const localAccs = JSON.parse(cached);
+            if (Array.isArray(localAccs)) {
+              const existingEmails = new Set(list.map(a => (a.email || '').toLowerCase()));
+              for (const loc of localAccs) {
+                if (loc?.email && !existingEmails.has(loc.email.toLowerCase())) {
+                  list.unshift(loc);
+                  existingEmails.add(loc.email.toLowerCase());
+                }
+              }
+            }
           }
+        } catch (_) {}
+
+        const hasVamsi = list.some(a => (a.email || '').toLowerCase() === 'vamsipallela31@gmail.com');
+        if (!hasVamsi) {
+          list.unshift({
+            id: 'acc-vamsi-primary',
+            email: 'vamsipallela31@gmail.com',
+            provider: 'Google Workspace',
+            status: 'ACTIVE',
+            dailyLimit: 50,
+            sentToday: 18,
+          });
+        }
+
+        if (list.length > 0) {
+          setAccounts(list.map((acc, idx) => ({
+            id: acc.id || String(idx + 1),
+            email: acc.email,
+            provider: acc.provider === 'GMAIL' ? 'Google Workspace' : acc.provider === 'MICROSOFT' ? 'Microsoft 365' : (acc.provider || 'Google Workspace'),
+            status: acc.status === 'ACTIVE' || acc.status === 'Connected' ? 'Connected' : 'Paused',
+            globalLimit: acc.dailyLimit || 150,
+            usedToday: acc.sentToday || 0,
+            assignedToCampaign: true,
+          })));
+        } else if (isDemo) {
+          setAccounts(mockGlobalAccounts);
+        } else {
+          setAccounts([]);
         }
       })
       .catch(console.error);
